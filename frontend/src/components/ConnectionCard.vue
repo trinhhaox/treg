@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import ProviderLogo from './ProviderLogo.vue'
 
 // One credential for a catalog provider, on Connections and on its provider's page: a connection
@@ -17,7 +18,7 @@ export default {
     owner() { return (this.a.c || this.a.s).owner },
     // Broken or about to be: renewing is the card's primary step rather than a link.
     fixable() { return this.a.st.key === 'reconnect' || this.a.st.key === 'failing' },
-    renewLabel() { return this.a.pasted ? 'Replace key' : 'Reconnect' },
+    renewLabel() { return this.a.pasted ? t('conn_card.replace_key') : t('conn_card.reconnect') },
     caps() {
       const ask = this.a.p ? { provider: this.a.p, conn: this.a.c } : null
       return (this.a.c.capabilities || []).map(cap => this.capLabel(cap, ask)).join(', ')
@@ -41,20 +42,20 @@ export default {
   </div>
 
   <p class="cn-what">
-    <template v-if="a.s">{{authLabel(a.p)}}, saved as a secret<template v-if="a.st.tone==='quiet'">. The connected one is used instead</template></template>
+    <template v-if="a.s">{{authLabel(a.p)}}, {{t('conn_card.saved_as_secret')}}<template v-if="a.st.tone==='quiet'">. The connected one is used instead</template></template>
     <template v-else-if="a.st.key==='paused'">{{a.c.paused_message}}</template>
     <template v-else>
       <template v-if="manage && (a.c.resource_name || a.c.resource_ref)">{{a.c.resource_name || a.c.resource_ref}} · </template>
-      {{a.pasted ? authLabel(a.p) : (caps || 'Connected account')}}</template>
+      {{a.pasted ? authLabel(a.p) : (caps || t('conn_card.connected_account'))}}</template>
     <template v-if="owner"> · added by {{short(owner)}}</template>
   </p>
 
   <!-- A named key: remove it. Pasting one through the provider's button replaces it in use. -->
   <div v-if="a.s" class="cn-acts">
     <span class="cn-links">
-      <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">Manage</a>
+      <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">{{t('conn_card.manage')}}</a>
       <button class="cn-del" :class="{armed:confirmDelSecret===a.s.id}" @click="deleteSecret(a.s)">
-        {{confirmDelSecret===a.s.id ? 'Click again to remove' : 'Remove'}}</button>
+        {{confirmDelSecret===a.s.id ? t('conn_card.remove_confirm') : t('conn_card.remove')}}</button>
     </span>
   </div>
 
@@ -62,7 +63,7 @@ export default {
   <div v-else-if="a.st.key==='paused'" class="cn-acts">
     <span class="cn-links">
       <button class="cn-del" :class="{armed:confirmDisc===a.c.id}" @click="disconnect(a.c)">
-        {{confirmDisc===a.c.id ? 'Click again to remove' : 'Disconnect'}}</button>
+        {{confirmDisc===a.c.id ? t('conn_card.remove_confirm') : t('conn_card.disconnect')}}</button>
     </span>
   </div>
 
@@ -73,8 +74,8 @@ export default {
              :aria-label="a.c.extra_credential_label||'Second credential'"
              v-model="extraCred[a.c.id]" @keyup.enter="saveExtraCred(a.c)"/>
       <button class="pl-btn sm" :disabled="!extraCred[a.c.id] || extraBusy===a.c.id" @click="saveExtraCred(a.c)">
-        {{extraBusy===a.c.id?'Saving…':'Save'}}</button>
-      <button class="pl-btn sm ghost" @click="fixOpen=false">Cancel</button>
+        {{extraBusy===a.c.id?'Saving…':t('common.save')}}</button>
+      <button class="pl-btn sm ghost" @click="fixOpen=false">{{t('common.cancel')}}</button>
     </div>
   </div>
 
@@ -86,13 +87,13 @@ export default {
     <button v-if="!manage && missing && a.p" class="pl-btn sm ghost" :disabled="connBusy"
             @click="startConnect(a.p, a.c)" :title="'Ask for '+a.c.missing_capabilities.join(', ')+' as well'">Add {{missing}}</button>
     <span class="cn-links">
-      <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">Manage</a>
+      <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">{{t('conn_card.manage')}}</a>
       <template v-else>
-        <button @click="renameConnection(a.c)" title="Change the tool name an agent calls for this account">Rename</button>
+        <button @click="renameConnection(a.c)" title="Change the tool name an agent calls for this account">{{t('conn_card.rename')}}</button>
         <button v-if="!fixable && a.p" :disabled="connBusy" @click="renewConnection(a)">{{renewLabel}}</button>
       </template>
       <button class="cn-del" :class="{armed:confirmDisc===a.c.id}" @click="disconnect(a.c)">
-        {{confirmDisc===a.c.id ? 'Click again to remove' : (a.pasted ? 'Remove' : 'Disconnect')}}</button>
+        {{confirmDisc===a.c.id ? t('conn_card.remove_confirm') : (a.pasted ? t('conn_card.remove') : t('conn_card.disconnect'))}}</button>
     </span>
   </div>
 </div>

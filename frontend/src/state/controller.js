@@ -42,10 +42,11 @@ import sessionComputed from './sessionComputed.js'
 import agentsComputed from './agentsComputed.js'
 import onboardingComputed from './onboardingComputed.js'
 import detailsComputed from './detailsComputed.js'
+import { t, currentLocale, setLocale, toggleLocale } from './i18n'
 export default {
  data,
- computed: {...resourcesComputed, ...billingComputed, ...connectionsComputed, ...catalogComputed, ...sessionComputed, ...agentsComputed, ...onboardingComputed, ...detailsComputed, ...findComputed, ...credentialIssueComputed},
- methods: {...resources, setElement(name, element) { this.elements[name] = element }, ...session, ...team, ...keys, ...agents, ...projects, ...governance, ...activity, ...billing, ...referrals, ...secrets, ...tools, ...skills, ...format, ...onboarding, ...analytics, ...help, ...connections, ...sharing, ...navigation, ...catalog, ...catalogEvents, ...details, ...admin, ...snippets, ...tryTool, ...find, ...lifecycle, ...hub, ...tickets, ...credentialIssues},
+ computed: {...resourcesComputed, ...billingComputed, ...connectionsComputed, ...catalogComputed, ...sessionComputed, ...agentsComputed, ...onboardingComputed, ...detailsComputed, ...findComputed, ...credentialIssueComputed, currentLocale() { return currentLocale.value }},
+ methods: {...resources, setElement(name, element) { this.elements[name] = element }, ...session, ...team, ...keys, ...agents, ...projects, ...governance, ...activity, ...billing, ...referrals, ...secrets, ...tools, ...skills, ...format, ...onboarding, ...analytics, ...help, ...connections, ...sharing, ...navigation, ...catalog, ...catalogEvents, ...details, ...admin, ...snippets, ...tryTool, ...find, ...lifecycle, ...hub, ...tickets, ...credentialIssues, t, setLocale, toggleLocale},
  watch:{
     // Dialog focus (in on open, trapped, back to the trigger on close) and Escape: v-dialog (dialogs/dialog.ts)
     'welcome.agent'(v){ storageSet('treg-agent', v); },  // see _restoreAgent

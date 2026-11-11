@@ -5340,6 +5340,11 @@ def cmd_admin_grant(args, cfg) -> None:
         _show(c.post(f"/admin/users/{args.user_id}/superadmin", json={"value": True}))
 
 
+def cmd_admin_set_password(args, cfg) -> None:
+    with _admin_client(cfg) as c:
+        _show(c.post(f"/admin/users/{args.user_id}/password", json={"password": args.password}))
+
+
 def cmd_admin_revoke(args, cfg) -> None:
     with _admin_client(cfg) as c:
         _show(c.post(f"/admin/users/{args.user_id}/superadmin", json={"value": False}))
@@ -7108,6 +7113,10 @@ def build_parser() -> argparse.ArgumentParser:
     mk(ad, "health", "Platform-wide health rollup.", "treg admin health").set_defaults(fn=cmd_admin_health)
     ag = mk(ad, "grant", "Grant a user super-admin.", "treg admin grant 5")
     ag.add_argument("user_id", type=int, help="the user id"); ag.set_defaults(fn=cmd_admin_grant)
+    asp = mk(ad, "set-password", "Set or reset a user's password.", "treg admin set-password 5 --password 'Secret123'")
+    asp.add_argument("user_id", type=int, help="the user id")
+    asp.add_argument("--password", required=True, help="the new password (min 6 chars)")
+    asp.set_defaults(fn=cmd_admin_set_password)
     arv = mk(ad, "revoke", "Revoke a user's super-admin.", "treg admin revoke 5")
     arv.add_argument("user_id", type=int, help="the user id"); arv.set_defaults(fn=cmd_admin_revoke)
     asu = mk(ad, "suspend-user", "Suspend (or --undo) a user platform-wide.", "treg admin suspend-user 5", "treg admin suspend-user 5 --undo")

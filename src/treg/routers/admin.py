@@ -890,6 +890,31 @@ async def admin_delete_user(
     return {"deleted_user": user_id, "deleted_empty_orgs": emptied}
 
 
+class AdminPasswordIn(BaseModel):
+    password: str
+
+
+@app.post("/admin/users/{user_id}/password")
+async def admin_set_user_password(
+    user_id: int,
+    body: AdminPasswordIn,
+    _: str = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_admin_session),
+) -> dict:
+    """Superadmin endpoint to set or reset any user's password."""
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu phải có tối thiểu 6 ký tự")
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    from ..domain.identity.password import hash_password
+    user.password_hash = hash_password(body.password)
+    db.add(user)
+    await db.commit()
+    return {"user_id": user_id, "ok": True, "message": "Đặt mật khẩu thành công"}
+
+
+
 @app.post("/admin/orgs/{org_id}/suspend")
 async def admin_suspend_org(
     org_id: int, body: BoolIn, _: str = Depends(require_superadmin), db: AsyncSession = Depends(get_admin_session)

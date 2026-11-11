@@ -84,7 +84,8 @@ NAME_QUESTION = {
 
 
 def configured() -> bool:
-    return bool(get_settings().typesafe_api_key)
+    # Always ready: if typesafe_api_key is absent, search seamlessly falls back to fast keyword & platform recall
+    return True
 
 
 def clean_query(q: str) -> str:
@@ -197,6 +198,13 @@ async def judge(query: str, cands: list[tuple[dict, float]], cat: catalog_store.
     lexical order inside a bucket. A bare name with no strong fit (the judge reads it as one, or
     it is exactly a platform's name) is answered with what that name offers when the catalog has it."""
     s = get_settings()
+    if not s.typesafe_api_key:
+        hit = find_recall.name_of(query, find_recall.index(cat), platform, provider_display)
+        if hit and hit.kind == "provider":
+            return Judged(NAME, [(ep, None) for ep in name_page(hit, cat, platform)], judge_infra.Judgement(probs=None, ms=0),
+                          named="provider")
+        page, _, _ = catalog_store.rank_band(query, cat, 25, platform)
+        return Judged(KEYWORD, [(ep, None) for ep, _ in page[:25]], judge_infra.Judgement(probs=None, ms=0))
     views = [judge_infra.candidate_view(ep, cat.capabilities.get(ep.get("capability") or "", ""))
              for ep, _ in cands]
     j = await judge_infra.judge(query, views, api_key=s.typesafe_api_key, model=s.typesafe_model,
@@ -429,6 +437,8 @@ async def judge_v2(query: str, cands: list[find_recall.Candidate], cat: catalog_
     catalog gap or not a task. `timeout_s` defaults to find's (`find_timeout_s`); an agent's search
     passes its own budget."""
     s = get_settings()
+    if not s.typesafe_api_key:
+        return judge_infra.Judgement(probs=None, ms=0)
     extra = {"name": NAME_QUESTION}
     if platform is None:
         extra["plat"] = platform_question(find_recall.index(cat))

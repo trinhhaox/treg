@@ -1,0 +1,27 @@
+services:
+  treg:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: treg-app
+    restart: unless-stopped
+    ports:
+      - "172.17.0.1:3031:18790"
+    env_file:
+      - .env
+    environment:
+      - PORT=18790
+      - TREG_DATABASE_URL=sqlite+aiosqlite:////app/data/treg.db
+      - TREG_PUBLIC_URL=https://treg.xox.vn
+    volumes:
+      - treg-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18790/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  treg-data:
+    driver: local

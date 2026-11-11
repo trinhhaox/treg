@@ -206,7 +206,8 @@ costNative(c){ return c && c.display_unit ? '' : this.nativeAmount(c); },
         ? '$'+this.usdNum(typeof pf.display_usd==='number' ? pf.display_usd : pf.usd)+' / '+
           (pf.display_unit || this.priceUnit(pf.type))
         : null;
-      if(pf && pf.type==='free') return {free:true, text:'free with your account'};
+      const freeAccountText = this.t ? this.t('catalog.free_with_account', null, 'miễn phí với tài khoản của bạn') : 'free with your account';
+      if(pf && pf.type==='free') return {free:true, text:freeAccountText};
       // An OAuth integration among the providers means the floor price is $0: the account you
       // connect IS the licence. Metered providers may serve the same platform (that rate moves to
       // the tooltip) — but "from" is a floor, and the floor is free.
@@ -214,7 +215,7 @@ costNative(c){ return c && c.display_unit ? '' : this.nativeAmount(c); },
       const hasOauth=provs.some(s=>{
         const p=this.providers.find(x=>x.service===s);
         return p && p.auth_kind==='oauth' && !p.metered; });
-      if(hasOauth) return {free:true, text:'free with your account', paid};
+      if(hasOauth) return {free:true, text:freeAccountText, paid};
       if(paid) return {free:false, text:paid, native:this.nativeAmount(pf)};
       return null; },
 // priced with no published number, or key-auth with no rate — unknown, not free
@@ -280,7 +281,8 @@ endpointConnectLabel(e){
 // What a platform's personal mark means when the team holds a credential for one of its providers:
     // not that the platform works (every platform works, on treg's key) but that calls there use yours.
     platConnTitle(pl){ const own=this.platOwn(pl);
-      const what=own.some(s=>!this.pastedCredential(this.providerIndex.get(s))) ? 'your account' : 'your key';
+      const t = this.t || ((k, _, fb) => fb);
+      const what=own.some(s=>!this.pastedCredential(this.providerIndex.get(s))) ? t('catalog.your_account', null, 'tài khoản của bạn') : t('catalog.your_key', null, 'khóa của bạn');
       return 'Calls to '+own.map(s=>this.provName(s)).join(', ')+' use '+what+', unmetered. The rest run on treg\'s key.'; },
 // The endpoint's inputs, grouped by where they go. Query first, then path, then body: the order
     // you fill them in for the common GET, and the order the provider's own docs tend to use.
@@ -361,17 +363,20 @@ usefulTitle(r){ const s=r.useful, v=s && r.e.reviews;
     worksOf(o){ return o && o.decided>=20 && o.ok_rate!=null ? {pct:Math.round(o.ok_rate*100), n:o.decided} : null; },
 usefulOf(e){ return e.reviews && e.reviews.share ? reviewSummary(e.reviews) : null; },
 // A tool's price on a card or a row: a tool only your own key or account can call has no treg price.
-    toolPrice(e){ return e.platform_eligible!==false ? this.costShort(e.cost)
-      : this.provAuthKind(e.provider)==='oauth' ? 'your account' : 'your key only'; },
+    toolPrice(e){
+      const t = this.t || ((k, _, fb) => fb);
+      return e.platform_eligible!==false ? this.costShort(e.cost)
+        : this.provAuthKind(e.provider)==='oauth' ? t('catalog.your_account', null, 'tài khoản của bạn') : t('catalog.your_key_only', null, 'chỉ khóa của bạn'); },
 // A price small enough for a collapsed line: "$0.024/call", "2 rows", "free", "credit-priced".
     // The long form ("per success · price in provider dashboard") is true but belongs in the
     // expanded detail — inline it wraps a row onto three lines, which is what broke the merged rows.
     costShort(c){
+      const t = this.t || ((k, _, fb) => fb);
       if(!c || !c.type) return '—';
-      if(c.type==='free') return 'free';
+      if(c.type==='free') return t('catalog.free', null, 'miễn phí');
       // A price table has no scalar value but does have a range (and, for video, a per-second
       // rate); only a truly unpublished number is "credit-priced".
-      if(c.value==null && !(c.table && typeof c.usd==='number')) return 'credit-priced';
+      if(c.value==null && !(c.table && typeof c.usd==='number')) return t('catalog.credit_priced', null, 'theo tín dụng');
       return this.costLabel(c); },
 // `providers` needs a session. Publicly, "is this a provider treg knows" is answered by the
     // open catalog response instead — otherwise the whole action chain collapses and a signed-out

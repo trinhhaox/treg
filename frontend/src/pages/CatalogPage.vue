@@ -13,11 +13,11 @@ export default { components: { FindAnswer, CatalogSearch }, setup: useDashboard 
   <!-- A title and the box: someone here came to look something up. Your own keys have their own page
        (Connections, in the nav); asking for a tool and listing one sit at the foot. -->
   <header class="pl-hero">
-    <h1>{{toolCountText ? toolCountText+' tools' : 'Tools'}} for agents</h1>
+    <h1>{{toolCountText ? toolCountText+' ' + t('catalog.tools_suffix') : t('catalog.title')}}</h1>
     <!-- One box, two questions: a platform name filters the shelves as you type; when typing pauses
          the finder answers above the filtered shelves, and Enter asks for
          the full answer (state/find.js). Clearing the box is how you leave an answer. -->
-    <CatalogSearch v-if="plats.list.length" v-model="q" placeholder="Search a platform, or describe what your agent needs to do" />
+    <CatalogSearch v-if="plats.list.length" v-model="q" :placeholder="t('catalog.search_placeholder')" />
   </header>
 
   <!-- A described job is answered above the shelves rather than instead of them: the shelves
@@ -41,7 +41,7 @@ export default { components: { FindAnswer, CatalogSearch }, setup: useDashboard 
               :class="{'find-hit':findFull && findHits[pl.slug], 'find-dim':findFull && find.phase==='done' && findGroups.length && !findHits[pl.slug]}"
               :title="pl.summary ? pl.label+': '+pl.summary : pl.label"
               :aria-label="'Open '+pl.label" @click="openPlatform(pl.slug)">
-        <span v-if="findFull && findHits[pl.slug]" class="pt-find">{{findHits[pl.slug]}} match{{findHits[pl.slug]===1?'':'es'}}</span>
+        <span v-if="findFull && findHits[pl.slug]" class="pt-find">{{findHits[pl.slug]}} {{t('catalog.matches')}}</span>
         <!-- A platform's OWN mark, not its providers': the card is the platform. Anything we haven't
              drawn falls back to a generated initial tile, not a broken image. -->
         <span class="pl-logo lg" :class="{gen:platLogoBad[pl.slug]}"
@@ -58,8 +58,8 @@ export default { components: { FindAnswer, CatalogSearch }, setup: useDashboard 
             <span v-if="!publicCatalog && platOwn(pl).length" class="cat-own" role="img"
                   :title="platConnTitle(pl)" :aria-label="platConnTitle(pl)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg></span></span>
-          <span v-if="platPaused(pl)" class="pl-meta" :title="providerPaused(pl.providers[0]).message">Paused</span>
-          <span v-else class="pl-meta">{{pl.endpoints}} tool{{pl.endpoints===1?'':'s'}}<template v-if="platPrice(pl)"> · <span :title="platPriceTitle(pl)">{{platPrice(pl).free ? platPrice(pl).text : 'from '+platPrice(pl).text}}</span></template></span>
+          <span v-if="platPaused(pl)" class="pl-meta" :title="providerPaused(pl.providers[0]).message">{{t('catalog.paused')}}</span>
+          <span v-else class="pl-meta">{{pl.endpoints}} {{t('catalog.tools_suffix')}}<template v-if="platPrice(pl)"> · <span :title="platPriceTitle(pl)">{{platPrice(pl).free ? platPrice(pl).text : t('catalog.from')+' '+platPrice(pl).text}}</span></template></span>
         </span>
       </button>
     </div>

@@ -117,14 +117,14 @@ export default function data(){
       shareGate:null,  // logged-out arrival at a shared detail link: {kind,name} → focused sign-in page (no sandbox/tour)
       share:{on:false, email:'', role:'viewer', full:true, busy:false, err:'', sent:null, member:null},  // detail-page "Share…" (invite + land on this page)
       me:'', icHash:'', myOrgs:[], isAdmin:false,
-      meAvatar:null, uploadsOn:false, avatarDialog:false,  // /auth/me: your avatar, whether this registry takes uploads; the Your avatar dialog
+      meAvatar:null, uploadsOn:false, avatarDialog:false, changePasswordDialog:false, agentConnectDialog:false,  // /auth/me: your avatar, whether this registry takes uploads; the Your avatar dialog
       onboarded:true,  // first-run onboarding done (server flag; gates autoTeam)
       welcome:{on:false, step:1, agent:'claude-code', replay:false},  // first-run modal: pick your agent → setup line → try it; agent is also what Getting started shows
       firstTeam:{busy:false, name:'', err:''},  // first-run: the team the server made (named on Getting started) or why it could not
       emptyTab:'agent',
       tools:[], health:{}, calls:[], runs:[], callsLoaded:false, activityNext:null, activityOlderBusy:false, adminStats:null, adminOrgs:[], adminUsers:[],
       admHub:{on:false, state:'requested', rows:[], reason:{}, cap:{}, busy:null, updates:[]},  // hub listing review (superadmin)
-      adminBusy:false, confirmAdmUser:null, confirmAdmOrg:null,
+      adminBusy:false, confirmAdmUser:null, confirmAdmOrg:null, adminResetUser:null, adminResetPassword:'',
       proxy: location.origin, copyTool:null, snippetTab:'cURL', snippetTabs:['cURL','CLI','Claude Code','Python','Node'], copied:false,
       exPath:'<PATH>', exMethod:'GET',
       tryTool:null, tryMethod:'GET', tryPath:'', tryBody:'', trying:false, tryResp:null, tryStatus:0, tryMs:0,

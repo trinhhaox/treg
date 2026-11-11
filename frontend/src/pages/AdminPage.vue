@@ -5,16 +5,16 @@ export default { setup: useDashboard }
 
 <template>
 
-          <h1>Platform admin</h1>
-          <p class="sub">Cross-tenant control (super-admin). Suspend locks members out; delete cascades.</p>
-          <div class="statgrid" v-if="adminStats"><div class="stat"><div class="n">{{adminStats.totals.users}}</div><div class="l">users</div></div><div class="stat"><div class="n">{{adminStats.totals.orgs}}</div><div class="l">orgs</div></div><div class="stat"><div class="n">{{adminStats.totals.tools}}</div><div class="l">tools</div></div><div class="stat"><div class="n">{{adminStats.totals.calls}}</div><div class="l">calls</div></div><div class="stat"><div class="n">{{adminStats.calls.success_rate==null?'-':Math.round(adminStats.calls.success_rate*100)+'%'}}</div><div class="l">success rate</div></div></div>
+          <h1>{{t('admin.title')}}</h1>
+          <p class="sub">{{t('admin.subtitle')}}</p>
+          <div class="statgrid" v-if="adminStats"><div class="stat"><div class="n">{{adminStats.totals.users}}</div><div class="l">{{t('admin.users')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.orgs}}</div><div class="l">{{t('admin.orgs')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.tools}}</div><div class="l">{{t('admin.tools')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.calls}}</div><div class="l">{{t('admin.calls')}}</div></div><div class="stat"><div class="n">{{adminStats.calls.success_rate==null?'-':Math.round(adminStats.calls.success_rate*100)+'%'}}</div><div class="l">{{t('admin.success_rate')}}</div></div></div>
 
-          <template v-if="admHub.on">
+          <template v-if="admHub && admHub.on">
             <div class="grp" style="margin:0 0 8px">Hub listing requests</div>
             <div class="tabs" style="margin:0 0 8px">
               <button v-for="s in ['requested','approved','rejected']" :key="s" :class="{active:admHub.state===s}" @click="loadAdminHub(s)">{{s}}</button>
             </div>
-            <p v-if="!admHub.rows.length" class="sub">None {{admHub.state}}.</p>
+            <p v-if="!admHub.rows || !admHub.rows.length" class="sub">None {{admHub.state}}.</p>
             <table v-else>
               <tr><th>Tool</th><th>Price</th><th>Check</th><th>Asked</th><th></th></tr>
               <tr v-for="r in admHub.rows" :key="r.tool_id">
@@ -36,7 +36,7 @@ export default { setup: useDashboard }
               </tr>
             </table>
             <div class="grp" style="margin:18px 0 8px">Hub updates waiting <span class="muted">(listed tools: a new version or a new price)</span></div>
-            <p v-if="!admHub.updates.length" class="sub">None waiting.</p>
+            <p v-if="!admHub.updates || !admHub.updates.length" class="sub">None waiting.</p>
             <table v-else>
               <tr><th>Tool</th><th>Serves now</th><th>Would replace it</th><th></th></tr>
               <tr v-for="u in admHub.updates" :key="'u'+u.tool_id">
@@ -58,40 +58,66 @@ export default { setup: useDashboard }
             <div style="height:22px"></div>
           </template>
 
-          <div class="grp" style="margin:0 0 8px">All organizations</div>
-          <table v-if="adminOrgs.length">
-            <tr><th>Org</th><th>Members</th><th>Tools</th><th>Status</th><th></th></tr>
+          <div class="grp" style="margin:0 0 8px">{{t('admin.all_orgs')}}</div>
+          <table v-if="adminOrgs && adminOrgs.length">
+            <tr><th>{{t('admin.col_org')}}</th><th>{{t('admin.col_members')}}</th><th>{{t('admin.tools')}}</th><th>{{t('admin.col_status')}}</th><th></th></tr>
             <tr v-for="o in adminOrgs" :key="o.id">
               <td><b>{{o.name}}</b></td><td>{{o.members}}</td><td>{{o.tools}}</td>
-              <td><span class="badge" :class="o.suspended?'invalid':'ok'">{{o.suspended?'suspended':'active'}}</span></td>
+              <td><span class="badge" :class="o.suspended?'invalid':'ok'">{{o.suspended?t('admin.suspended'):t('common.active')}}</span></td>
               <td style="text-align:right;white-space:nowrap">
-                <button class="btn sm" @click="admSuspendOrg(o)" :disabled="adminBusy">{{o.suspended?'Unsuspend':'Suspend'}}</button>
-                <button class="btn sm" :class="{danger:confirmAdmOrg===o.id}" @click="admDeleteOrg(o)" style="margin-left:6px">{{confirmAdmOrg===o.id?'Confirm':'Delete'}}</button>
+                <button class="btn sm" @click="admSuspendOrg(o)" :disabled="adminBusy">{{o.suspended?t('admin.unsuspend'):t('admin.suspend')}}</button>
+                <button class="btn sm" :class="{danger:confirmAdmOrg===o.id}" @click="admDeleteOrg(o)" style="margin-left:6px">{{confirmAdmOrg===o.id?t('admin.confirm'):t('common.delete')}}</button>
               </td>
             </tr>
           </table>
+          <p v-else class="sub" style="margin:0 0 16px">{{adminBusy ? 'Đang tải danh sách tổ chức...' : 'Chưa có tổ chức nào hoặc đang tải...'}}</p>
 
-          <div class="grp" style="margin:22px 0 8px">All users</div>
-          <table v-if="adminUsers.length">
-            <tr><th>Email</th><th>Orgs</th><th>Flags</th><th></th></tr>
+          <div class="grp" style="margin:22px 0 8px">{{t('admin.all_users')}}</div>
+          <table v-if="adminUsers && adminUsers.length">
+            <tr><th>{{t('admin.col_email')}}</th><th>{{t('admin.orgs')}}</th><th>{{t('admin.col_flags')}}</th><th></th></tr>
             <tr v-for="u in adminUsers" :key="u.id">
-              <td>{{u.email}}<span v-if="u.email===me" class="chip" style="margin-left:6px">you</span></td>
+              <td>{{u.email}}<span v-if="u.email===me" class="chip" style="margin-left:6px">{{t('admin.you')}}</span></td>
               <td class="muted">{{u.orgs.length}}</td>
               <td>
-                <span v-if="u.is_superadmin" class="badge ok">super-admin</span>
-                <span v-if="u.suspended" class="badge invalid" style="margin-left:4px">suspended</span>
+                <span v-if="u.is_superadmin" class="badge ok">{{t('admin.superadmin')}}</span>
+                <span v-if="u.suspended" class="badge invalid" style="margin-left:4px">{{t('admin.suspended')}}</span>
                 <span v-if="!u.is_superadmin && !u.suspended" class="muted">-</span>
               </td>
               <td style="text-align:right;white-space:nowrap">
                 <template v-if="u.email!==me">
-                  <button class="btn sm" @click="admGrant(u)" :disabled="adminBusy">{{u.is_superadmin?'Revoke admin':'Make admin'}}</button>
-                  <button class="btn sm" @click="admSuspendUser(u)" :disabled="adminBusy" style="margin-left:6px">{{u.suspended?'Unsuspend':'Suspend'}}</button>
-                  <button class="btn sm" :class="{danger:confirmAdmUser===u.id}" @click="admDeleteUser(u)" style="margin-left:6px">{{confirmAdmUser===u.id?'Confirm':'Delete'}}</button>
+                  <button class="btn sm" @click="admOpenReset(u)" :disabled="adminBusy">{{t('admin.reset_password') || 'Đặt lại MK'}}</button>
+                  <button class="btn sm" @click="admGrant(u)" :disabled="adminBusy" style="margin-left:6px">{{u.is_superadmin?t('admin.revoke_admin'):t('admin.make_admin')}}</button>
+                  <button class="btn sm" @click="admSuspendUser(u)" :disabled="adminBusy" style="margin-left:6px">{{u.suspended?t('admin.unsuspend'):t('admin.suspend')}}</button>
+                  <button class="btn sm" :class="{danger:confirmAdmUser===u.id}" @click="admDeleteUser(u)" style="margin-left:6px">{{confirmAdmUser===u.id?t('admin.confirm'):t('common.delete')}}</button>
                 </template>
-                <span v-else class="muted">- you -</span>
+                <template v-else>
+                  <button class="btn sm" @click="changePasswordDialog=true">{{t('nav.change_password')}}</button>
+                </template>
               </td>
             </tr>
           </table>
+          <p v-else class="sub" style="margin:0 0 16px">{{adminBusy ? 'Đang tải danh sách người dùng...' : 'Chưa có người dùng nào hoặc đang tải...'}}</p>
+
+          <!-- Modal Superadmin Đặt lại mật khẩu cho thành viên -->
+          <div v-if="adminResetUser" class="scrim" role="dialog" aria-modal="true" @click.self="admCloseReset">
+            <div class="box" style="max-width:420px;padding:24px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="margin:0">{{t('admin.reset_password') || 'Đặt lại mật khẩu'}}</h3>
+                <button class="btn sm ico" @click="admCloseReset">✕</button>
+              </div>
+              <p class="sub" style="margin:0 0 14px">
+                {{t('admin.new_password_for') || 'Đặt mật khẩu mới cho:'}} <b>{{adminResetUser.email}}</b>
+              </p>
+              <div v-if="err" class="banner" style="margin-bottom:12px;background:#ffefef;color:#b00020;padding:8px 12px;border-radius:6px;font-size:13px">{{err}}</div>
+              <input type="password" v-model="adminResetPassword" :placeholder="t('password.new_placeholder') || '••••••••'" style="width:100%;box-sizing:border-box;margin-bottom:16px;padding:8px 12px" autofocus @keydown.enter="admSubmitReset"/>
+              <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button class="btn sm" @click="admCloseReset">{{t('common.cancel') || 'Hủy'}}</button>
+                <button class="btn sm primary" :disabled="adminBusy || !adminResetPassword || adminResetPassword.length < 6" @click="admSubmitReset">
+                  {{adminBusy ? '...' : (t('common.save') || 'Lưu mật khẩu')}}
+                </button>
+              </div>
+            </div>
+          </div>
 
 </template>
 

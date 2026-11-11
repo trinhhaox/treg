@@ -7,7 +7,7 @@ export default { setup: useDashboard }
 
           <div class="tut-head">
             <div>
-              <p class="sub" style="margin:0 0 4px"><a href="/app#tools" @click.prevent="go('tools')">← Tools</a></p>
+              <p class="sub" style="margin:0 0 4px"><a href="/app#tools" @click.prevent="go('tools')">{{t('detail.back_tools')}}</a></p>
               <h1 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">{{detail.name}}
                 <span class="chip">{{detail.kind==='skill' ? 'skill' : (detailData&&detailData.cli ? 'endpoint + CLI' : 'endpoint')}}</span>
                 <span v-if="detailData&&detailData.owner" class="chip" :title="'shared by '+detailData.owner">{{detailData.owner}}</span>
@@ -15,38 +15,38 @@ export default { setup: useDashboard }
             </div>
             <div class="tut-actions" style="position:relative">
               <template v-if="detailData && detail.kind==='skill' && (detailData.tools||[]).length">
-                <button class="btn sm" @click.stop="(detailData.tools.length===1 ? tryDetailTool(detailData.tools[0]) : tryMenu=!tryMenu)" title="Call one of this skill's tools right here — the key stays server-side">▶ Try it</button>
+                <button class="btn sm" @click.stop="(detailData.tools.length===1 ? tryDetailTool(detailData.tools[0]) : tryMenu=!tryMenu)" title="Call one of this skill's tools right here — the key stays server-side">{{t('detail.try_it')}}</button>
                 <div v-if="tryMenu" style="position:fixed;inset:0;z-index:29" @click="tryMenu=false"></div>
                 <div class="dropdown" v-if="tryMenu" style="left:auto;right:0;top:110%;width:260px" @click.stop>
                   <div class="row" v-for="t in detailData.tools" :key="'try'+t.id" @click="tryDetailTool(t)"><span style="min-width:0"><b style="font-size:12.5px">⚒ {{t.name}}</b><span class="sub" style="display:block;font-size:11px;margin-top:1px">{{t.host||t.base_url}}</span></span></div>
                 </div>
               </template>
               <template v-if="canRegister && detailData">
-                <button v-if="detail.kind==='tool'" class="btn sm" @click="configureTool(detailData)" :title="'Edit this '+(detailData.cli?'CLI':'endpoint')+' — credentials, '+(detailData.cli?'deny list, local runs':'bindings')">⚙ Configure</button>
+                <button v-if="detail.kind==='tool'" class="btn sm" @click="configureTool(detailData)" :title="'Edit this '+(detailData.cli?'CLI':'endpoint')+' — credentials, '+(detailData.cli?'deny list, local runs':'bindings')">{{t('detail.configure')}}</button>
                 <template v-else-if="(detailData.tools||[]).length">
-                  <button class="btn sm" @click.stop="(detailData.tools.length===1 ? configureTool(detailData.tools[0]) : cfgMenu=!cfgMenu)" title="Edit this skill's tools — credentials, deny lists, local runs">⚙ Configure</button>
+                  <button class="btn sm" @click.stop="(detailData.tools.length===1 ? configureTool(detailData.tools[0]) : cfgMenu=!cfgMenu)" title="Edit this skill's tools — credentials, deny lists, local runs">{{t('detail.configure')}}</button>
                   <div v-if="cfgMenu" style="position:fixed;inset:0;z-index:29" @click="cfgMenu=false"></div>
                   <div class="dropdown" v-if="cfgMenu" style="left:auto;right:0;top:110%;width:260px" @click.stop>
                     <div class="row" v-for="t in detailData.tools" :key="'cfg'+t.id" @click="configureTool(t)"><span style="min-width:0"><b style="font-size:12.5px">⚒ {{t.name}}</b><span class="sub" style="display:block;font-size:11px;margin-top:1px">{{t.host||t.base_url}}</span></span></div>
                   </div>
                 </template>
               </template>
-              <button class="btn sm" @click="copyDetail(detailShareUrl,'url')" title="Copy this page's URL — anyone on the team can open it">{{detailCopied==='url'?'✓ copied':'⧉ Copy link'}}</button>
-              <button v-if="canAdmin && detailData" class="btn sm primary" @click="openShare" title="Invite someone outside the team — they'll land right on this page">Share…</button>
+              <button class="btn sm" @click="copyDetail(detailShareUrl,'url')" title="Copy this page's URL — anyone on the team can open it">{{detailCopied==='url'?t('detail.copied'):t('detail.copy_link')}}</button>
+              <button v-if="canAdmin && detailData" class="btn sm primary" @click="openShare" title="Invite someone outside the team — they'll land right on this page">{{t('detail.share')}}</button>
             </div>
           </div>
           <div v-if="detailErr" class="banner" style="margin-top:12px">{{detailErr}}</div>
           <div v-if="detailNote" class="tut-notice" style="margin-top:12px;max-width:860px">{{detailNote}}</div>
-          <p v-if="detailLoading" class="sub">Loading…</p>
+          <p v-if="detailLoading" class="sub">{{t('common.loading', null, 'Đang tải…')}}</p>
 
           <template v-if="detailData && detail.kind==='skill'">
             <div style="max-width:860px;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:14px 0;background:var(--panel)">
-              <h3 style="margin:0 0 6px;font-size:14px">Use with your agent</h3>
-              <p class="sub" style="margin:0 0 10px">Send someone this page's link, or paste this into a coding agent (Claude Code / Codex / Gemini) — it installs the CLI, signs them in as themselves, and pulls just this skill. <template v-if="(detailData.secrets||[]).length">Its credential{{detailData.secrets.length>1?'s stay':' stays'}} server-side — calls go through the proxy, no key lands on their machine.</template></p>
+              <h3 style="margin:0 0 6px;font-size:14px">{{t('detail.agent_section_title')}}</h3>
+              <p class="sub" style="margin:0 0 10px">{{t('detail.agent_section_desc')}} <template v-if="(detailData.secrets||[]).length">Its credential{{detailData.secrets.length>1?'s stay':' stays'}} server-side — calls go through the proxy, no key lands on their machine.</template></p>
               <pre class="code" style="white-space:pre-wrap;max-height:34vh;overflow:auto">{{detailPrompt}}</pre>
               <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <button class="btn primary" @click="copyDetail(detailPrompt,'prompt')">⧉ {{detailCopied==='prompt'?'Copied!':'Copy prompt'}}</button>
-                <button class="btn" @click="copyDetail('treg skill install '+detail.name,'cli')" title="Just the CLI command, if treg is already set up">{{detailCopied==='cli'?'✓ copied':'treg skill install '+detail.name}}</button>
+                <button class="btn primary" @click="copyDetail(detailPrompt,'prompt')">⧉ {{detailCopied==='prompt'?t('detail.copy_prompt_done'):t('detail.copy_prompt')}}</button>
+                <button class="btn" @click="copyDetail('treg skill install '+detail.name,'cli')" title="Just the CLI command, if treg is already set up">{{detailCopied==='cli'?t('detail.copied'):'treg skill install '+detail.name}}</button>
               </div>
             </div>
             <div v-if="(detailData.tools||[]).length || (detailData.secrets||[]).length" style="max-width:860px;margin:0 0 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">

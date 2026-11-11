@@ -1306,65 +1306,198 @@ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(refit);
 addEventListener('load',refit);
 addEventListener('resize',refit);
 
-/* ===== sign-in (same door as landing.html) ===== */
+/* ===== sign-in ===== */
 function openSignin(){
   if(document.body.dataset.signedIn==='true'){ location.href='/app'; return; }
   document.getElementById('signin-scrim').classList.add('open');
-  document.getElementById('em-input').focus(); }
+  const em = document.getElementById('em-input');
+  if(em) em.focus();
+}
 function closeSignin(){ document.getElementById('signin-scrim').classList.remove('open'); }
 addEventListener('keydown',e=>{ if(e.key==='Escape') closeSignin(); });
+
+let currentAuthMode = 'password';
+
+function switchAuthMode(mode){
+  currentAuthMode = mode;
+  const pwdWrap = document.getElementById('em-pwd-wrap');
+  const otpWrap = document.getElementById('em-otp-wrap');
+  const tokenWrap = document.getElementById('em-token-wrap');
+  const err = document.getElementById('em-err');
+  if(err) err.textContent = '';
+
+  const btnOptPwd = document.getElementById('opt-pwd-btn');
+  const btnOptOtp = document.getElementById('opt-otp-btn');
+  const btnOptTok = document.getElementById('opt-tok-btn');
+
+  if(pwdWrap) pwdWrap.style.display = (mode === 'password') ? 'block' : 'none';
+  if(otpWrap) otpWrap.style.display = (mode === 'otp') ? 'block' : 'none';
+  if(tokenWrap) tokenWrap.style.display = (mode === 'token') ? 'block' : 'none';
+
+  if(btnOptPwd) btnOptPwd.style.display = (mode === 'password') ? 'none' : 'flex';
+  if(btnOptOtp) btnOptOtp.style.display = (mode === 'otp') ? 'none' : 'flex';
+  if(btnOptTok) btnOptTok.style.display = (mode === 'token') ? 'none' : 'flex';
+
+  if(mode === 'password') {
+    const p = document.getElementById('em-pwd');
+    if(p) p.focus();
+  } else if(mode === 'otp') {
+    const o = document.getElementById('em-otp-input');
+    if(o) {
+      o.value = document.getElementById('em-input')?.value || '';
+      o.focus();
+    }
+  } else if(mode === 'token') {
+    const t = document.getElementById('em-token-input');
+    if(t) t.focus();
+  }
+}
+
+async function passwordLogin(){
+  const em = (document.getElementById('em-input')?.value || '').trim();
+  const pwd = (document.getElementById('em-pwd')?.value || '').trim();
+  const err = document.getElementById('em-err');
+  const btn = document.getElementById('em-pwd-btn');
+  if(!em){ if(err) err.textContent='Vui lòng nhập địa chỉ email.'; return; }
+  if(!pwd){ if(err) err.textContent='Vui lòng nhập mật khẩu.'; return; }
+  if(btn) { btn.disabled = true; btn.textContent = 'Đang đăng nhập…'; }
+  if(err) err.textContent = '';
+  try{
+    const r = await fetch('/auth/password/login', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({email: em, password: pwd})
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || 'Email hoặc mật khẩu không chính xác.');
+    location.href = '/app';
+  }catch(e){
+    if(err) err.textContent = e.message;
+    if(btn) { btn.disabled = false; btn.textContent = 'Đăng nhập'; }
+  }
+}
+
 async function emailStart(){
-  const em=document.getElementById('em-input').value.trim();
+  const em=(document.getElementById('em-otp-input')?.value || document.getElementById('em-input')?.value || '').trim();
   const err=document.getElementById('em-err');
-  if(!em){ err.textContent='Enter your email address.'; return; }
-  if (document.getElementById('em-btn1').disabled) return; document.getElementById('em-btn1').disabled = true; document.getElementById('em-btn1').textContent = 'Sending…'; err.textContent='';
+  const btn=document.getElementById('em-btn1');
+  if(!em){ if(err) err.textContent='Vui lòng nhập email.'; return; }
+  if(btn && btn.disabled) return;
+  if(btn) { btn.disabled = true; btn.textContent = 'Đang gửi…'; }
+  if(err) err.textContent='';
   try{
     const t=window.tregCaptcha ? await tregCaptcha.token('email_start') : '';
     const r=await fetch('/auth/email/start',{method:'POST',
       headers:{'content-type':'application/json'},body:JSON.stringify({email:em,captcha_token:t})});
-    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||'could not send the code');
+    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||'Không thể gửi mã xác nhận');
     const d=await r.json().catch(()=>({}));
     document.getElementById('em-step1').style.display='none';
     document.getElementById('em-step2').style.display='block';
-    if(d.dev_code){ document.getElementById('em-code').value=d.dev_code;
-      err.style.color='var(--green)'; err.textContent='dev mode - your code: '+d.dev_code;
-    } else { err.style.color=''; }
-    document.getElementById('em-code').focus();
-  }catch(e){ err.textContent=e.message; document.getElementById('em-btn1').disabled = false; document.getElementById('em-btn1').textContent = 'Email me a sign-in code'; }
+    if(d.dev_code){
+      document.getElementById('em-code').value=d.dev_code;
+      if(err) { err.style.color='var(--green)'; err.textContent='Chế độ dev - Mã của bạn: '+d.dev_code; }
+    } else { if(err) err.style.color=''; }
+    document.getElementById('em-code')?.focus();
+  }catch(e){
+    if(err) err.textContent=e.message;
+    if(btn) { btn.disabled = false; btn.textContent = 'Gửi mã xác thực qua Email'; }
+  }
 }
+
 async function emailVerify(){
-  const em=document.getElementById('em-input').value.trim();
-  const code=document.getElementById('em-code').value.trim();
+  const em=(document.getElementById('em-otp-input')?.value || document.getElementById('em-input')?.value || '').trim();
+  const code=document.getElementById('em-code')?.value.trim();
   const err=document.getElementById('em-err');
+  const btn=document.getElementById('em-btn2');
   if(!code) return;
-  document.getElementById('em-btn2').textContent='Verifying…'; err.textContent='';
+  if(btn) btn.textContent='Đang xác thực…';
+  if(err) err.textContent='';
   try{
     const r=await fetch('/auth/email/verify',{method:'POST',
       headers:{'content-type':'application/json'},body:JSON.stringify({email:em,code})});
-    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||'that code didn\'t work');
+    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||'Mã xác thực không đúng hoặc đã hết hạn');
     location.href='/app';
-  }catch(e){ err.textContent=e.message; document.getElementById('em-btn2').textContent='Sign in'; }
+  }catch(e){
+    if(err) err.textContent=e.message;
+    if(btn) btn.textContent='Xác nhận mã';
+  }
+}
+
+async function tokenLogin(){
+  const tok = (document.getElementById('em-token-input')?.value || '').trim();
+  const err = document.getElementById('em-err');
+  const btn = document.getElementById('em-token-btn');
+  if(!tok){ if(err) err.textContent = 'Vui lòng dán token tổ chức / quản trị.'; return; }
+  if(btn) { btn.disabled = true; btn.textContent = 'Đang kiểm tra token…'; }
+  if(err) err.textContent = '';
+  try{
+    const r = await fetch('/orgs', { headers: {'X-Treg-Token': tok} });
+    const orgs = await r.json().catch(()=>[]);
+    if(!r.ok || !orgs.length){
+      // Thử endpoint admin stats
+      const rAdmin = await fetch('/admin/stats', { headers: {'X-Treg-Token': tok} });
+      if(!rAdmin.ok) throw new Error('Token không hợp lệ.');
+    }
+    const cfg = { active: (orgs[0]&&orgs[0].slug)||'default', orgs: {} };
+    if(orgs[0]) cfg.orgs[orgs[0].slug] = { token: tok, role: orgs[0].role, name: orgs[0].name, org_id: orgs[0].org_id };
+    else cfg.orgs['default'] = { token: tok, role: 'admin', name: 'Admin', org_id: 1 };
+    localStorage.setItem('treg-cfg', JSON.stringify(cfg));
+    location.href = '/app';
+  }catch(e){
+    if(err) err.textContent = e.message || 'Token không hợp lệ.';
+    if(btn) { btn.disabled = false; btn.textContent = 'Đăng nhập bằng Token'; }
+  }
 }
 </script>
 
 <!-- sign-in modal -->
 <div class="scrim" id="signin-scrim" onclick="if(event.target===this)closeSignin()">
-  <div class="smodal" role="dialog" aria-label="Sign in">
+  <div class="smodal" role="dialog" aria-label="Sign in" data-auth-enhanced="true">
     <button class="cls" onclick="closeSignin()" aria-label="Close">✕</button>
-    <h3>Sign in to treg</h3>
-    <p>first sign-in creates your account</p>
-    <a class="candy" href="/auth/github" style="text-decoration:none">Continue with GitHub</a>
-    <a class="ghostbtn" href="/auth/google" style="text-decoration:none">Continue with Google</a>
-    <div class="div">or email a code</div>
-    <div id="em-step1">
-      <input id="em-input" type="email" data-captcha="email_start" placeholder="you@work.com" onkeyup="if(event.key==='Enter')emailStart()"/>
-      <button class="ghostbtn" onclick="emailStart()" id="em-btn1">Email me a sign-in code</button>
+    <h3>Đăng nhập vào Treg</h3>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--muted2);margin:0 0 14px">Quản lý và kết nối AI Agent của bạn</p>
+
+    <!-- 1. Password Login Mode (Default) -->
+    <div id="em-pwd-wrap">
+      <label for="em-input" style="display:block;text-align:left;font-size:12px;margin:8px 0 3px;font-weight:500">Email</label>
+      <input id="em-input" type="email" placeholder="you@work.com" autocomplete="email" onkeyup="if(event.key==='Enter')document.getElementById('em-pwd').focus()"/>
+      <label for="em-pwd" style="display:block;text-align:left;font-size:12px;margin:10px 0 3px;font-weight:500">Mật khẩu</label>
+      <input id="em-pwd" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" onkeyup="if(event.key==='Enter')passwordLogin()"/>
+      <button class="candy" onclick="passwordLogin()" id="em-pwd-btn" style="width:100%;margin-top:14px;padding:12px">Đăng nhập</button>
     </div>
-    <div id="em-step2" style="display:none">
-      <input id="em-code" inputmode="numeric" placeholder="6-digit code" onkeyup="if(event.key==='Enter')emailVerify()"/>
-      <button class="candy" onclick="emailVerify()" id="em-btn2">Sign in</button>
+
+    <!-- 2. Email OTP Mode -->
+    <div id="em-otp-wrap" style="display:none">
+      <div id="em-step1">
+        <label for="em-otp-input" style="display:block;text-align:left;font-size:12px;margin:8px 0 3px;font-weight:500">Email</label>
+        <input id="em-otp-input" type="email" data-captcha="email_start" placeholder="you@work.com" onkeyup="if(event.key==='Enter')emailStart()"/>
+        <button class="candy" onclick="emailStart()" id="em-btn1" style="width:100%;margin-top:14px;padding:12px">Gửi mã xác thực qua Email</button>
+      </div>
+      <div id="em-step2" style="display:none">
+        <p style="font-size:11px;margin:6px 0;color:var(--muted)">Nhập mã 6 chữ số đã gửi tới email</p>
+        <input id="em-code" inputmode="numeric" placeholder="Mã 6 chữ số" onkeyup="if(event.key==='Enter')emailVerify()"/>
+        <button class="candy" onclick="emailVerify()" id="em-btn2" style="width:100%;margin-top:14px;padding:12px">Xác nhận mã</button>
+      </div>
     </div>
-    <div class="err" id="em-err"></div>
+
+    <!-- 3. Token Mode -->
+    <div id="em-token-wrap" style="display:none">
+      <label for="em-token-input" style="display:block;text-align:left;font-size:12px;margin:8px 0 3px;font-weight:500">Token Quản trị / Tổ chức</label>
+      <input id="em-token-input" type="password" placeholder="X-Treg-Token hoặc treg_adm_..." onkeyup="if(event.key==='Enter')tokenLogin()"/>
+      <button class="candy" onclick="tokenLogin()" id="em-token-btn" style="width:100%;margin-top:14px;padding:12px">Đăng nhập bằng Token</button>
+    </div>
+
+    <div class="err" id="em-err" style="margin-top:8px"></div>
+
+    <!-- Alternative Login Options -->
+    <div class="div" style="margin:16px 0 10px">HOẶC ĐĂNG NHẬP BẰNG</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="ghostbtn" id="opt-otp-btn" onclick="switchAuthMode('otp')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">✉ Nhận mã OTP qua Email</button>
+      <button class="ghostbtn" id="opt-pwd-btn" onclick="switchAuthMode('password')" style="width:100%;display:none;align-items:center;justify-content:center;gap:8px">🔑 Đăng nhập bằng Mật khẩu</button>
+      <button class="ghostbtn" id="opt-tok-btn" onclick="switchAuthMode('token')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">🎫 Dán Token Quản trị / Tổ chức</button>
+      <a class="ghostbtn" href="/auth/google" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px"><img src="/media/aeo/logos/google.svg" style="width:16px;height:16px" alt=""/>Google</a>
+      <a class="ghostbtn" href="/auth/github" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px"><img src="/media/recruit/github.svg" style="width:16px;height:16px" alt=""/>GitHub</a>
+    </div>
   </div>
 </div>
 

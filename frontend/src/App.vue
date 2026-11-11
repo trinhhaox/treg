@@ -223,6 +223,8 @@ export default { ...controller, components: { ...controller.components, ...dialo
          key billed to the team balance - and logged in Activity exactly like a CLI call. -->
     <TryEndpointDialog v-if="epTry" />
     <UserAvatarDialog v-if="avatarDialog" />
+    <ChangePasswordDialog v-if="changePasswordDialog" />
+    <AgentConnectDialog v-if="agentConnectDialog" />
 
     <!-- Toasts, bottom right: a newer dashboard build is live, and the access reminder (fired when
          a new tool is registered while some members have customized access). -->

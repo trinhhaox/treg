@@ -304,35 +304,35 @@ export default {
 <div class="sp" :class="{answered:find.phase==='done' && cards.length}" ref="stage">
   <section class="sp-top">
     <div v-if="find.phase==='idle' || findBusy" class="sp-hero" :class="{quiet:findBusy}">
-      <span class="sp-count" :style="plats.settled ? null : {visibility:'hidden'}">{{platforms.length}} platforms · {{vendors.length}} providers<template v-if="toolCountText"> · {{toolCountText}} tools</template></span>
-      <h1 class="hero-h1">What does your agent<br><span>need to do?</span></h1>
+      <span class="sp-count" :style="plats.settled ? null : {visibility:'hidden'}">{{platforms.length}} {{currentLocale==='vi'?'nền tảng':'platforms'}} · {{vendors.length}} {{currentLocale==='vi'?'nhà cung cấp':'providers'}}<template v-if="toolCountText"> · {{toolCountText}} {{currentLocale==='vi'?'công cụ':'tools'}}</template></span>
+      <h1 class="hero-h1">{{t('search.hero_title')}}<br><span>{{t('search.hero_subtitle')}}</span></h1>
     </div>
 
     <div v-else-if="find.phase==='error'" class="sp-panel sp-msg"><p>{{find.error}}</p>
-      <button class="btn sm" type="button" @click="ask()">Try again</button></div>
+      <button class="btn sm" type="button" @click="ask()">{{t('search.try_again')}}</button></div>
 
     <div v-else-if="!cards.length" class="sp-panel sp-msg">
       <p v-if="find.verdict==='none' && find.reason"><b>{{findNoneText()}}</b>
-        <template v-if="find.reason==='gap'"> Tell us what you need and it steers what gets added next.</template></p>
-      <p v-else><b>Nothing in the catalog does this yet.</b>
-        <template v-if="find.verdict==='none'"> We read {{find.read}} candidate{{find.read===1?'':'s'}} and none fit.</template>
-        Tell us what you need and it steers what gets added next.</p>
-      <button v-if="find.reason!=='not_task'" class="btn sm primary" type="button" @click="findRequestTool()">Request this tool</button>
+        <template v-if="find.reason==='gap'"> {{t('search.no_fit_help')}}</template></p>
+      <p v-else><b>{{t('search.no_fit_title')}}</b>
+        <template v-if="find.verdict==='none'"> {{currentLocale==='vi' ? `Đã đọc ${find.read} công cụ tiềm năng nhưng không có kết quả phù hợp.` : `We read ${find.read} candidate${find.read===1?'':'s'} and none fit.`}}</template>
+        {{t('search.no_fit_help')}}</p>
+      <button v-if="find.reason!=='not_task'" class="btn sm primary" type="button" @click="findRequestTool()">{{t('search.request_tool')}}</button>
     </div>
 
     <div v-else class="sp-panel" ref="panel" @scroll.passive="onPanelScroll">
       <!-- The answer's one action sits on its title line, where the eye lands when the cards appear. -->
       <div class="sp-panel-h">
-        <span v-if="find.verdict==='strong'" class="sp-title">Best fit for <b>{{find.q}}</b></span>
-        <span v-else-if="find.verdict==='closest'" class="sp-title warn">No strong fit for <b>{{find.q}}</b>. Closest matches:</span>
-        <span v-else-if="find.verdict==='name'" class="sp-title">Tools for <b>{{find.q}}</b></span>
-        <span v-else class="sp-title">Keyword matches for <b>{{find.q}}</b>. Matching by meaning is unavailable right now.</span>
+        <span v-if="find.verdict==='strong'" class="sp-title">{{t('search.best_fit')}} <b>{{find.q}}</b></span>
+        <span v-else-if="find.verdict==='closest'" class="sp-title warn">{{t('search.closest_fit', {q: find.q})}}</span>
+        <span v-else-if="find.verdict==='name'" class="sp-title">{{t('search.tools_for')}} <b>{{find.q}}</b></span>
+        <span v-else class="sp-title">{{t('search.keyword_matches')}} <b>{{find.q}}</b></span>
         <span class="sp-actions">
-          <button class="sp-share" type="button" @click="findShare()">{{findCopied==='share'?'Link copied':'Share'}}</button>
+          <button class="sp-share" type="button" @click="findShare()">{{findCopied==='share'?t('search.share_copied'):t('search.share')}}</button>
           <button class="sp-copy" type="button" @click="findCopyAll()">
             <svg v-if="findCopied!=='all'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
             <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-            {{findCopied==='all' ? 'Copied. Paste it to your agent' : 'Copy for your agent'}}</button>
+            {{findCopied==='all' ? t('search.copied_agent') : t('search.copy_agent')}}</button>
         </span>
       </div>
       <div class="sp-cards">
@@ -364,18 +364,18 @@ export default {
       </div>
       <!-- A job that only came close shows its first vendors; the rest are one step away, on its shelf. -->
       <p v-for="(g, gi) in folded" :key="g.key" class="sp-folded">
-        {{g.hidden}} more provider{{g.hidden===1?'':'s'}} for <b>{{g.label}}</b>.
-        <button type="button" @click="openJob(g, gi, g)">See them all</button></p>
+        {{t('search.more_providers', {count: g.hidden, label: g.label})}}
+        <button type="button" @click="openJob(g, gi, g)">{{t('search.see_all')}}</button></p>
     </div>
   </section>
 
   <form class="sp-ask" @submit.prevent="ask()">
     <div class="sp-in">
-      <label class="rd-sr-only" for="sp-q">Describe the job</label>
+      <label class="rd-sr-only" for="sp-q">{{t('search.input_label')}}</label>
       <!-- Esc here, not on the window: Esc on the sign-in dialog must close the dialog only. -->
-      <input id="sp-q" v-model="text" autocomplete="off" :placeholder="examples[0]" @keydown.esc="findActive && exit()">
-      <button v-if="findActive || text" class="sp-x" type="button" aria-label="Clear the search" @click="exit()">×</button>
-      <button class="sp-go" :class="{busy:findBusy}" type="submit" aria-label="Find tools">
+      <input id="sp-q" v-model="text" autocomplete="off" :placeholder="currentLocale==='vi'?'Ví dụ: Tìm kiếm Facebook, phân tích SEO, TikTok, gửi email...':examples[0]" @keydown.esc="findActive && exit()">
+      <button v-if="findActive || text" class="sp-x" type="button" :aria-label="t('search.clear')" @click="exit()">×</button>
+      <button class="sp-go" :class="{busy:findBusy}" type="submit" :aria-label="t('search.find_tools')">
         <svg v-if="!findBusy" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </div>

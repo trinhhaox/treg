@@ -132,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const modal = document.querySelector('#signin-scrim .smodal');
+  if (modal?.dataset?.authEnhanced) return;
   const email = modal?.querySelector('#em-input');
   const emailStep = modal?.querySelector('#em-step1');
   const codeStep = modal?.querySelector('#em-step2');

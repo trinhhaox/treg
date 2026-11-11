@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import ProviderLogo from '../components/ProviderLogo.vue'
 import ConnectionCard from '../components/ConnectionCard.vue'
 import FilterBox from '../components/FilterBox.vue'
@@ -29,23 +30,23 @@ export default {
 <template>
 <div class="pl cn">
   <header class="pl-hero">
-    <h1>Connections</h1>
-    <p class="pl-lede">Your own accounts and keys. Calls with them are never metered.</p>
+    <h1>{{t('conn.title')}}</h1>
+    <p class="pl-lede">{{t('conn.subtitle')}}</p>
   </header>
 
   <div v-if="connErr || secretErr" class="banner cn-banner"><span>{{connErr || secretErr}}</span><button class="btn sm ico" @click="connErr=''; secretErr=''" aria-label="Dismiss">✕</button></div>
 
   <section v-if="connAccounts.length" class="pl-sec">
-    <h2 class="pl-h"><span>Connected</span><i></i><em>{{connAccounts.length}}</em></h2>
+    <h2 class="pl-h"><span>{{t('conn.connected')}}</span><i></i><em>{{connAccounts.length}}</em></h2>
     <div class="pl-grid pl-grid-t">
       <ConnectionCard v-for="a in connAccounts" :key="a.id" :a="a" manage />
     </div>
   </section>
 
   <section class="pl-sec">
-    <h2 class="pl-h"><span>Add a connection</span><i></i><em>{{connectable.length}}</em></h2>
+    <h2 class="pl-h"><span>{{t('conn.add_connection')}}</span><i></i><em>{{connectable.length}}</em></h2>
     <div class="cn-filters">
-      <FilterBox v-model="connQ" label="Filter providers" placeholder="Filter providers, e.g. Apollo, Google Ads, video" />
+      <FilterBox v-model="connQ" :label="t('conn.add_connection')" :placeholder="t('conn.filter_ph')" />
       <!-- Logging in with an account you already have and pasting a key are different errands:
            someone holding a Google Ads login is not scanning for API-key vendors. -->
       <div class="seg cn-kinds" role="radiogroup" aria-label="How you connect">

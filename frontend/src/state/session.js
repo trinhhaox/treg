@@ -36,6 +36,10 @@ async emailVerify(){ const code=(this.codeInput||'').trim(); if(!code) return; t
       try{ await this.api('/auth/email/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:this.emailInput.trim(),code})});
         location.reload(); }  // verify sets the session cookie → reload lands in session mode (like GitHub)
       catch(err){ this.loginErr = err.status===401?'Wrong or expired code.':'Sign-in failed.'; } finally{ this.busy=false; } },
+async passwordLogin(pwd){ const p=(pwd||'').trim(), e=(this.emailInput||'').trim(); if(!e||!p) return; this.busy=true; this.loginErr='';
+      try{ await this.api('/auth/password/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:e,password:p})});
+        location.reload(); }
+      catch(err){ this.loginErr = err.detail || (err.status===401?'Sai email hoặc mật khẩu.':'Đăng nhập thất bại.'); } finally{ this.busy=false; } },
 async acceptInvite(inv){ try{ await this.api('/invites/'+inv.id+'/accept',{method:'POST'});
         this.pendingInvites=this.pendingInvites.filter(i=>i.id!==inv.id); await this.loadAll(); }
       catch(e){ this.err='Accept failed: '+(e.detail||e.status); } },

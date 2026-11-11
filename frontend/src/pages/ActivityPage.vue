@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import PageTabs from '../components/PageTabs.vue'
 import { DataTable } from '../components/ui/table'
 import SpendBars from '../components/SpendBars.vue'
@@ -32,8 +33,17 @@ const dayLabel = (iso, opts) => new Date(iso + 'T00:00:00Z').toLocaleDateString(
 export default {
   components: { PageTabs, DataTable, SpendBars, SelectMenu, DateRangePicker, InfoTip, Money },
   setup: useDashboard,
-  data: () => ({ feedColumns: FEED, memberColumns: BY_MEMBER, toolColumns: BY_TOOL, dayColumns: BY_DAY, tagColumns: BY_TAG, spendColumns: BY_SERIES, GROUPS, STACKS, PAGE, NO_KEY }),
+  data: () => ({ memberColumns: BY_MEMBER, toolColumns: BY_TOOL, dayColumns: BY_DAY, tagColumns: BY_TAG, spendColumns: BY_SERIES, GROUPS, STACKS, PAGE, NO_KEY }),
   computed: {
+    feedColumns() {
+      return [
+        { key: 'when', header: t('activity.col_when') },
+        { key: 'caller', header: t('activity.col_caller'), width: '22%', wrap: true },
+        { key: 'call', header: t('activity.col_call'), wrap: true, mobile: 'primary' },
+        { key: 'status', header: t('activity.col_status') },
+        { key: 'cost', header: t('activity.col_cost'), align: 'right' },
+      ]
+    },
     // The filter lists keep the current choice even when the new range has no spend for it.
     daysNewestFirst() { return [...(this.usage?.by_day || [])].reverse() },
     activityKeyOptions() {
@@ -70,7 +80,7 @@ export default {
       return u?.history_from && u.history_from > u.since.slice(0, 10) ? dayLabel(u.history_from, { month: 'short', day: 'numeric', year: 'numeric' }) : ''
     },
     historyFrom() { return this.usageSpend?.history_from ? dayLabel(this.usageSpend.history_from, { month: 'short', day: 'numeric', year: 'numeric' }) : '' },
-    actTabs() { return [{ key: 'feed', label: 'Calls' }, ...(this.canAdmin ? [{ key: 'usage', label: 'Usage' }] : [])] },
+    actTabs() { return [{ key: 'feed', label: t('activity.tab_calls') }, ...(this.canAdmin ? [{ key: 'usage', label: t('activity.tab_usage') }] : [])] },
   },
   methods: {
     pickTab(key) { this.actTab = key; if (key === 'usage') this.loadUsage() },
@@ -102,20 +112,20 @@ export default {
 <template>
 <div class="pl act">
   <header class="pl-hero">
-    <h1>Activity</h1>
-    <p class="pl-lede">Every call and run in {{activeName}}. Open a call to see its request and response.</p>
+    <h1>{{t('activity.title')}}</h1>
+    <p class="pl-lede">{{t('activity.subtitle', {name: activeName})}}</p>
   </header>
   <!-- One page, two readings of the same traffic: the RAW FEED (every call, newest first)
        and the ROLLUPS (who/what/when, and spend per caller tag). They were separate sidebar
        entries, which made you leave one to answer a question about the other. -->
-  <PageTabs label="Activity" :tabs="actTabs" :current="actTab" @select="pickTab" />
+  <PageTabs :label="t('activity.title')" :tabs="actTabs" :current="actTab" @select="pickTab" />
 
   <template v-if="actTab==='feed'">
   <div class="cn-filters">
-    <SelectMenu v-model="activityKey" class="act-key" size="lg" icon="key" label="API key" :options="activityKeyOptions" @change="loadCalls" />
+    <SelectMenu v-model="activityKey" class="act-key" size="lg" icon="key" :label="t('activity.filter_key')" :options="activityKeyOptions" @change="loadCalls" />
     <div class="seg pl-seg" role="radiogroup" aria-label="Which calls">
-      <button role="radio" :aria-checked="actOkOnly" :class="{on:actOkOnly}" @click="actOkOnly=true" title="Hide failed and refused calls">Succeeded <span>{{activityOkRows.length}}</span></button>
-      <button role="radio" :aria-checked="!actOkOnly" :class="{on:!actOkOnly}" @click="actOkOnly=false" title="Include failed and refused calls">All <span>{{activityRows.length}}</span></button>
+      <button role="radio" :aria-checked="actOkOnly" :class="{on:actOkOnly}" @click="actOkOnly=true" title="Hide failed and refused calls">{{t('activity.succeeded')}} <span>{{activityOkRows.length}}</span></button>
+      <button role="radio" :aria-checked="!actOkOnly" :class="{on:!actOkOnly}" @click="actOkOnly=false" title="Include failed and refused calls">{{t('activity.all')}} <span>{{activityRows.length}}</span></button>
     </div>
     <span v-if="activityCachedCount" class="pl-meta pl-push">{{activityCachedCount}} of {{activityCallCount}} loaded {{activityCallCount===1?'call was':'calls were'}} served from the archive</span>
   </div>

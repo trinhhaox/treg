@@ -12,11 +12,14 @@ from fastapi import APIRouter, Cookie, Depends, Form, Header, HTTPException, Que
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from .. import client_ip, crypto
 from ..application import auth as auth_use_cases
-from ..application import signup
 from ..application import images
+from ..application import signup
+from ..domain.identity.password import hash_password, verify_password
+from ..infra.db import get_session
 from ..application.auth import (
     CLI_APPROVE_MAX_TRIES as CLI_APPROVE_MAX_TRIES,
     MAX_OTP_ATTEMPTS as MAX_OTP_ATTEMPTS,
@@ -1341,3 +1344,71 @@ async def auth_revoke_tokens(
     resp.set_cookie(sess.COOKIE, revoked.session_cookie, httponly=True,
                     samesite="lax", secure=_is_https(request), max_age=sess.TTL_SECONDS)
     return resp
+
+
+class PasswordLoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class PasswordChangeIn(BaseModel):
+    old_password: str = ""
+    new_password: str
+
+
+@app.post("/auth/password/login")
+async def auth_password_login(
+    request: Request,
+    body: PasswordLoginIn,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    """Sign in using email and password."""
+    norm_email = body.email.strip().lower()
+    stmt = select(User).where(User.email == norm_email)
+    res = await db.execute(stmt)
+    user = res.scalars().first()
+    if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không chính xác")
+    if user.suspended:
+        raise HTTPException(status_code=403, detail="Tài khoản đã bị tạm khóa")
+
+    token = sess.make_identity(
+        user.id, user.token_version, ttl=sess.BOOTSTRAP_TTL_SECONDS,
+        scope=sess.BOOTSTRAP_SCOPE,
+    )
+    session_cookie = sess.make_session(user.id, token_version=user.token_version)
+    resp = JSONResponse({"token": token, "email": user.email})
+    resp.headers["Cache-Control"] = "no-store"
+    resp.set_cookie(sess.COOKIE, session_cookie, httponly=True,
+                    samesite="lax", secure=_is_https(request), max_age=sess.TTL_SECONDS)
+    return resp
+
+
+@app.get("/auth/password/status")
+async def auth_password_status(
+    user: User = Depends(require_person),
+) -> dict:
+    """Return whether the authenticated user has a password set."""
+    return {"has_password": bool(user.password_hash), "email": user.email}
+
+
+@app.post("/auth/password/change")
+async def auth_password_change(
+    body: PasswordChangeIn,
+    user: User = Depends(require_person),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """Set or change user password."""
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu mới phải có tối thiểu 6 ký tự")
+
+    # If the user already has a password, verify old password first
+    if user.password_hash:
+        if not body.old_password or not verify_password(body.old_password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng")
+
+    user.password_hash = hash_password(body.new_password)
+    db.add(user)
+    await db.commit()
+    return {"ok": True, "message": "Đổi mật khẩu thành công"}
+

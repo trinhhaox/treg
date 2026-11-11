@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import ToolDrawer from '../components/ToolDrawer.vue'
 import FindAnswer from '../components/FindAnswer.vue'
 import CatalogSearch from '../components/CatalogSearch.vue'
@@ -29,18 +30,18 @@ export default {
 
 <template>
 <div class="pl" :class="{dopen:!!drawerEp}">
-  <div v-if="platLoading" class="pl-empty">Loading the catalog…</div>
+  <div v-if="platLoading" class="pl-empty">{{t('common.loading', null, 'Đang tải…')}}</div>
   <div v-else-if="platErr" class="pl-empty">{{platErr}}</div>
 
   <!-- THE SHELF -->
   <template v-else-if="platData && !platCap">
     <header class="pl-hero">
-      <nav class="pl-crumbs" aria-label="Breadcrumb"><a href="/catalog" @click.prevent="go('catalog')">Catalog</a><span>/</span>{{platLabel}}</nav>
+      <nav class="pl-crumbs" aria-label="Breadcrumb"><a href="/catalog" @click.prevent="go('catalog')">{{t('platform.crumbs_catalog')}}</a><span>/</span>{{platLabel}}</nav>
       <h1>{{platLabel}}</h1>
       <p v-if="platRow && platRow.summary" class="pl-lede">{{platRow.summary}}</p>
       <p v-if="platPaused(platRow)" class="mk-notice">{{providerPaused(platRow.providers[0]).message}}</p>
       <CatalogSearch v-model="platQ" :scope="platSlug" :scope-label="platLabel"
-                     :placeholder="'Search '+platLabel+', or describe what your agent needs to do'" />
+                     :placeholder="t('platform.search_ph', {label: platLabel})" />
     </header>
 
     <FindAnswer v-if="findActive && find.scope===platSlug" class="pl-find" />
@@ -49,7 +50,7 @@ export default {
          the price), then the rest, and the account plumbing, as lists. A job several providers do
          opens its comparison; a one-provider tool opens in the drawer. -->
     <section v-if="platTop.length" class="pl-sec">
-      <h2 class="pl-h"><span>{{platTopMeasured ? 'Most used' : 'Featured'}}</span><i></i></h2>
+      <h2 class="pl-h"><span>{{platTopMeasured ? t('platform.most_used') : t('platform.featured')}}</span><i></i></h2>
       <div class="pl-grid pl-grid-t">
         <template v-for="t in platTop" :key="t.job ? 'job:'+t.key : t.id">
           <a v-if="t.job" class="pl-card pl-cmp pl-job" :href="platUrl(platSlug, t.slug)" :title="t.hint" @click.prevent="openComparison(t.slug)">

@@ -1,24 +1,29 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import OwnToolsHeader from '../components/OwnToolsHeader.vue'
 import OwnToolCard from '../components/OwnToolCard.vue'
 import FilterBox from '../components/FilterBox.vue'
 import LoadFromMachine from '../components/LoadFromMachine.vue'
-export default { components: { OwnToolsHeader, OwnToolCard, FilterBox, LoadFromMachine }, setup: useDashboard, mounted(){ this.loadPlatforms() } }  // the catalog size in the copy
+export default {
+  components: { OwnToolsHeader, OwnToolCard, FilterBox, LoadFromMachine },
+  setup: useDashboard,
+  mounted() { this.loadPlatforms() }
+}
 </script>
 
 <template>
 <div class="pl own">
   <OwnToolsHeader current="tools">
     <template #actions v-if="canRegister">
-      <button class="pl-btn ghost" @click="openAddSkill">Import skill</button>
+      <button class="pl-btn ghost" @click="openAddSkill">{{t('tools.import_skill')}}</button>
       <span class="own-add">
-        <button class="pl-btn" @click.stop="addToolMenu=!addToolMenu" aria-haspopup="true" :aria-expanded="addToolMenu">Add tool</button>
+        <button class="pl-btn" @click.stop="addToolMenu=!addToolMenu" aria-haspopup="true" :aria-expanded="addToolMenu">{{t('tools.add_tool')}}</button>
         <div v-if="addToolMenu" class="own-add-scrim" @click="addToolMenu=false"></div>
         <div class="dropdown own-add-menu" v-if="addToolMenu" @click.stop>
-          <div class="row" @click="openAddTool('endpoint')"><span><b>Endpoint</b><span class="sub">an HTTP API, called through the proxy</span></span></div>
-          <div class="row" @click="openAddTool('cli')"><span><b>CLI</b><span class="sub">a command members run with the key injected</span></span></div>
-          <div class="row" @click="addToolMenu=false; go('catalog')"><span><b>From the catalog</b><span class="sub">ready-made endpoints by platform, many need no key</span></span></div>
+          <div class="row" @click="openAddTool('endpoint')"><span><b>{{t('tools.opt_endpoint')}}</b><span class="sub">{{t('tools.opt_endpoint_desc')}}</span></span></div>
+          <div class="row" @click="openAddTool('cli')"><span><b>{{t('tools.opt_cli')}}</b><span class="sub">{{t('tools.opt_cli_desc')}}</span></span></div>
+          <div class="row" @click="addToolMenu=false; go('catalog')"><span><b>{{t('tools.opt_catalog')}}</b><span class="sub">{{t('tools.opt_catalog_desc')}}</span></span></div>
         </div>
       </span>
     </template>
@@ -32,10 +37,10 @@ export default { components: { OwnToolsHeader, OwnToolCard, FilterBox, LoadFromM
   </div>
 
   <div class="cn-filters" v-if="hasAnyTools || q">
-    <FilterBox v-model="q" label="Search your own tools" placeholder="Search your own tools by name or host" :register="el => setElement('search', el)" />
+    <FilterBox v-model="q" :label="t('tools.search_label')" :placeholder="t('tools.search_placeholder')" :register="el => setElement('search', el)" />
     <div class="seg pl-seg" role="radiogroup" aria-label="Kind of tool">
-      <button v-for="k in [{key:'all', label:'All', n:ownToolCount}, {key:'endpoints', label:'APIs & CLIs', n:endpoints.length},
-                           {key:'skills', label:'Integration skills', n:skillTools.length}, {key:'recipes', label:'Skills', n:recipes.length}]"
+      <button v-for="k in [{key:'all', label:t('tools.tab_all'), n:ownToolCount}, {key:'endpoints', label:t('tools.tab_apis'), n:endpoints.length},
+                           {key:'skills', label:t('tools.tab_integration_skills'), n:skillTools.length}, {key:'recipes', label:t('tools.tab_skills'), n:recipes.length}]"
               :key="k.key" role="radio" :aria-checked="toolTab===k.key" :class="{on:toolTab===k.key}" @click="toolTab=k.key">{{k.label}} <span>{{k.n}}</span></button>
     </div>
   </div>

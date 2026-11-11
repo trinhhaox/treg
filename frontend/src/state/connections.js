@@ -177,12 +177,16 @@ connProvider(c){ return this.providerIndex.get(c.provider)||null; },
       return {key:'ok', tone:'ok', label:'Connected', title:'Saved. It is checked on its first call.'};
     },
 // How a provider's credential is obtained, in the words a person uses for it: the key's own name,
-    // or the account they log in with ("Sign in" read as signing in to treg; the card's logo and name
-    // already say whose account, and the catalog calls it "your account" too).
-    authLabel(p){ return this.pastedCredential(p) ? (p.token_label || 'API key') : 'Your account'; },
+    authLabel(p){ return this.pastedCredential(p) ? (p.token_label || 'API key') : (this.t ? this.t('conn.your_account', null, 'Tài khoản của bạn') : 'Tài khoản của bạn'); },
 pastedCredential(p){ return !!p && (p.auth_kind==='key' || p.auth_kind==='token'); },
 // A provider's connect button: a pasted key is one per team, so a second one replaces it.
-    connectLabel(p, connected){ return this.pastedCredential(p) ? (connected ? 'Replace key' : 'Add key') : (connected ? 'Add account' : 'Connect account'); },
+    connectLabel(p, connected){
+      const t = this.t || ((k, _, fb) => fb);
+      if (this.pastedCredential(p)) {
+        return connected ? t('conn.replace_key', null, 'Đổi khóa API') : t('conn.add_key', null, 'Thêm khóa API');
+      }
+      return connected ? t('conn.add_account', null, 'Thêm tài khoản') : t('provider.connect_account', null, 'Kết nối tài khoản');
+    },
 // Renew a connection the way it was made: re-consent for an account, a fresh paste for a key.
     renewConnection(a){ return a.pasted ? this.startConnect(a.p, a.c) : this.reconnect(a.c); },
 async saveExtraCred(c){

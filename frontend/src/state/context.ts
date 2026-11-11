@@ -1,4 +1,5 @@
 import { inject, markRaw, type ComponentPublicInstance, type InjectionKey } from 'vue'
+import { t } from './i18n'
 
 // Compatibility boundary for the existing Options API feature modules. New components should
 // expose typed props/events; the migrated pages share the original per-application state until
@@ -27,6 +28,7 @@ export function useDashboard() {
     })
   }
   bindings.$nextTick = vm.$nextTick.bind(vm)
+  ;(bindings as any).t = t
   return bindings
 }
 

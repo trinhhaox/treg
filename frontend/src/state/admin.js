@@ -35,5 +35,15 @@ admGrant(u){ this._adm('/admin/users/'+u.id+'/superadmin','POST',{value:!u.is_su
 admSuspendUser(u){ this._adm('/admin/users/'+u.id+'/suspend','POST',{value:!u.suspended}); },
 admDeleteUser(u){ if(this.confirmAdmUser!==u.id){ this.confirmAdmUser=u.id; return; } this.confirmAdmUser=null; this._adm('/admin/users/'+u.id,'DELETE'); },
 admSuspendOrg(o){ this._adm('/admin/orgs/'+o.id+'/suspend','POST',{value:!o.suspended}); },
-admDeleteOrg(o){ if(this.confirmAdmOrg!==o.id){ this.confirmAdmOrg=o.id; return; } this.confirmAdmOrg=null; this._adm('/admin/orgs/'+o.id,'DELETE'); }
+admDeleteOrg(o){ if(this.confirmAdmOrg!==o.id){ this.confirmAdmOrg=o.id; return; } this.confirmAdmOrg=null; this._adm('/admin/orgs/'+o.id,'DELETE'); },
+admOpenReset(u){ this.adminResetUser=u; this.adminResetPassword=''; this.err=''; },
+admCloseReset(){ this.adminResetUser=null; this.adminResetPassword=''; },
+async admSubmitReset(){
+  if(!this.adminResetUser) return;
+  const p=(this.adminResetPassword||'').trim();
+  if(!p || p.length < 6){ this.err='Mật khẩu phải có tối thiểu 6 ký tự.'; return; }
+  const uid=this.adminResetUser.id;
+  await this._adm('/admin/users/'+uid+'/password','POST',{password:p});
+  this.admCloseReset();
+}
 }

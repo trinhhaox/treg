@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import PageTabs from './PageTabs.vue'
 
 // The head of the three "Your own tools" pages (tools, secrets, team resources): the shelf's hero, and
@@ -12,9 +13,9 @@ export default {
   computed: {
     tabs() {
       return [
-        { key: 'tools', label: 'Skills & tools' },
-        ...(this.canRegister ? [{ key: 'secrets', label: 'Secrets' }] : []),
-        { key: 'resources', label: 'Team resources' },
+        { key: 'tools', label: t('tools_header.tab_tools') },
+        ...(this.canRegister ? [{ key: 'secrets', label: t('tools_header.tab_secrets') }] : []),
+        { key: 'resources', label: t('tools_header.tab_resources') },
       ]
     },
   },
@@ -24,11 +25,11 @@ export default {
 <template>
 <header class="pl-hero pl-hero-row">
   <div>
-    <h1>Your own tools</h1>
-    <p class="pl-lede">Your team's APIs, CLIs and skills, and the keys behind them. Agents never hold the keys.</p>
+    <h1>{{t('tools_header.title')}}</h1>
+    <p class="pl-lede">{{t('tools_header.subtitle')}}</p>
   </div>
   <div class="pl-hero-a"><slot name="actions" /></div>
 </header>
-<PageTabs label="Your own tools" :tabs="tabs" :current="current" @select="go" />
+<PageTabs :label="t('tools_header.title')" :tabs="tabs" :current="current" @select="go" />
 <p v-if="$slots.default" class="cat-hint own-note"><slot /></p>
 </template>

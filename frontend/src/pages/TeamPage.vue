@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import InfoTip from '../components/ui/InfoTip.vue'
 import Money from '../components/ui/Money.vue'
 import Avatar from '../components/ui/Avatar.vue'
@@ -42,21 +43,25 @@ export default {
 
           <div class="tut-head">
             <Avatar v-if="activeOrg && activeOrg.avatar_url" :src="activeOrg.avatar_url" :name="activeName" :size="40" />
-            <div><h1>Team: {{activeName}}<span v-if="isPersonal(activeOrg)" class="chip" style="margin-left:8px;vertical-align:middle">personal</span></h1>
-              <p class="sub" style="margin:0">You are <b>{{activeRole}}</b> here. <span class="muted">Switch, create or join a team from the picker at the top of the page.</span></p>
-              <button v-if="activeRole!=='owner' && memberSsoReady" class="btn sm" style="margin-top:8px" @click="copyMemberSsoLink">Copy company sign-in link</button></div>
+            <div><h1>{{t('team.title', {name: activeName})}}<span v-if="isPersonal(activeOrg)" class="chip" style="margin-left:8px;vertical-align:middle">{{t('common.personal')}}</span></h1>
+              <p class="sub" style="margin:0">{{t('team.role_desc', {role: activeRole})}} <span class="muted">Switch, create or join a team from the picker at the top of the page.</span></p>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                <button class="btn sm primary" @click="agentConnectDialog=true">{{t('mcp.nav_btn')}}</button>
+                <button v-if="activeRole!=='owner' && memberSsoReady" class="btn sm" @click="copyMemberSsoLink">Copy company sign-in link</button>
+              </div>
+            </div>
           </div>
           <!-- settings for the ACTIVE team (switching lives in the sidebar) -->
           <div v-if="activeOrg" style="margin-top:20px">
             <div class="tabs" style="margin:4px 0 16px">
-              <button v-if="canAdmin" :class="{active:orgTab==='members'}" @click="orgTab='members'">Members</button>
-              <button :class="{active:orgTab==='keys'}" @click="orgTab='keys'; loadApiKeys(); loadApiKeySpend()">API Keys</button>
-              <button v-if="canAdmin" :class="{active:orgTab==='projects'}" @click="orgTab='projects'">Projects</button>
-              <button v-if="canAdmin" :class="{active:orgTab==='policy'}" @click="orgTab='policy'">Policy</button>
-              <button v-if="canAdmin" :class="{active:orgTab==='billing'}" @click="orgTab='billing'">Billing</button>
-              <button v-if="canAdmin" :class="{active:orgTab==='showcase'}" @click="orgTab='showcase'">Showcase</button>
-              <button v-if="activeRole==='owner' || memberSsoReady" :class="{active:orgTab==='sso'}" @click="orgTab='sso'">SSO</button>
-              <button :class="{active:orgTab==='danger'}" @click="orgTab='danger'; resetRenameForm()">Team settings</button>
+              <button v-if="canAdmin" :class="{active:orgTab==='members'}" @click="orgTab='members'">{{t('team.tab_members')}}</button>
+              <button :class="{active:orgTab==='keys'}" @click="orgTab='keys'; loadApiKeys(); loadApiKeySpend()">{{t('team.tab_keys')}}</button>
+              <button v-if="canAdmin" :class="{active:orgTab==='projects'}" @click="orgTab='projects'">{{t('team.tab_projects')}}</button>
+              <button v-if="canAdmin" :class="{active:orgTab==='policy'}" @click="orgTab='policy'">{{t('team.tab_policy')}}</button>
+              <button v-if="canAdmin" :class="{active:orgTab==='billing'}" @click="orgTab='billing'">{{t('team.tab_billing')}}</button>
+              <button v-if="canAdmin" :class="{active:orgTab==='showcase'}" @click="orgTab='showcase'">{{t('team.tab_showcase')}}</button>
+              <button v-if="activeRole==='owner' || memberSsoReady" :class="{active:orgTab==='sso'}" @click="orgTab='sso'">{{t('team.tab_sso')}}</button>
+              <button :class="{active:orgTab==='danger'}" @click="orgTab='danger'; resetRenameForm()">{{t('team.tab_settings')}}</button>
             </div>
             <p v-if="!canAdmin && !['keys','danger','sso'].includes(orgTab)" class="sub" style="margin-bottom:12px">Members, projects and policy are visible to admins.</p>
             <div v-if="memberFunds && !canAdmin" class="tut-notice" role="status" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
@@ -158,11 +163,11 @@ export default {
                   </td>
                   <td style="text-align:right;white-space:nowrap">
                     <template v-if="m.is_agent">
-                      <span class="row-actions"><button class="btn sm" @click="showAgentSetup(m)" title="how to give this agent its identity">Setup</button>
-                      <button class="btn sm" :disabled="!!credentialIssue" :class="{danger:confirmAgent==='rotate-'+m.user_id}" @click="rotateAgent(m)" title="issue a new token — the old one stops working immediately">{{confirmAgent==='rotate-'+m.user_id?'Confirm rotate':'Rotate'}}</button>
-                      <button class="btn sm" :class="{danger:confirmAgent==='revoke-'+m.user_id}" @click="revokeAgent(m)">{{confirmAgent==='revoke-'+m.user_id?'Confirm revoke':'Revoke'}}</button></span>
+                      <span class="row-actions"><button class="btn sm" @click="showAgentSetup(m)" title="how to give this agent its identity">{{t('team.setup')}}</button>
+                      <button class="btn sm" :disabled="!!credentialIssue" :class="{danger:confirmAgent==='rotate-'+m.user_id}" @click="rotateAgent(m)" title="issue a new token — the old one stops working immediately">{{confirmAgent==='rotate-'+m.user_id?t('team.rotate_confirm'):t('team.rotate')}}</button>
+                      <button class="btn sm" :class="{danger:confirmAgent==='revoke-'+m.user_id}" @click="revokeAgent(m)">{{confirmAgent==='revoke-'+m.user_id?t('team.revoke_confirm'):t('team.revoke')}}</button></span>
                     </template>
-                    <button v-else-if="m.role!=='owner'" class="btn sm" :class="{danger:confirmRemove===m.user_id}" @click="removeMember(m)">{{confirmRemove===m.user_id?'Confirm remove':'Remove'}}</button>
+                    <button v-else-if="m.role!=='owner'" class="btn sm" :class="{danger:confirmRemove===m.user_id}" @click="removeMember(m)">{{confirmRemove===m.user_id?t('team.remove_member_confirm'):t('team.remove_member')}}</button>
                   </td>
                 </tr>
                 <tr v-if="!m.is_observed && editAccess===m.user_id">
@@ -185,10 +190,10 @@ export default {
                       </template>
                       <p v-else class="sub" style="margin:12px 0 0;font-size:12px">Tip: create a <a href="#" @click.prevent="orgTab='projects'">project</a> to scope members to just part of the team's tools.</p>
                       <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn sm primary" @click="saveAccess(m)">Save access</button>
-                        <button class="btn sm" @click="editAccess=null">Cancel</button>
-                        <button class="btn sm" @click="setAllAccess(true)">Check all</button>
-                        <button class="btn sm" @click="setAllAccess(false)">Uncheck all</button>
+                        <button class="btn sm primary" @click="saveAccess(m)">{{t('team.save_access')}}</button>
+                        <button class="btn sm" @click="editAccess=null">{{t('common.cancel')}}</button>
+                        <button class="btn sm" @click="setAllAccess(true)">{{t('team.check_all')}}</button>
+                        <button class="btn sm" @click="setAllAccess(false)">{{t('team.uncheck_all')}}</button>
                       </div>
                     </div>
                   </td>
@@ -196,9 +201,9 @@ export default {
                 </template>
               </table>
 
-              <div class="lbl" style="margin-top:22px;display:flex;align-items:center;gap:10px">Add to this team
-                <button v-if="!isPersonal(activeOrg)" class="btn sm" :class="{active:showInvite}" @click="showInvite=!showInvite; if(showInvite)showAddAgent=false">＋ Add member</button>
-                <button class="btn sm" :class="{active:showAddAgent}" @click="openAddAgent()">＋ Add agent</button></div>
+              <div class="lbl" style="margin-top:22px;display:flex;align-items:center;gap:10px">Thêm vào đội ngũ
+                <button v-if="!isPersonal(activeOrg)" class="btn sm" :class="{active:showInvite}" @click="showInvite=!showInvite; if(showInvite)showAddAgent=false">{{t('team.add_member')}}</button>
+                <button class="btn sm" :class="{active:showAddAgent}" @click="openAddAgent()">{{t('team.add_agent')}}</button></div>
               <p class="sub" style="margin:-2px 0 8px;font-size:12px">A member is a person who signs in. An agent is a machine identity with its own token — capped, scoped and logged as itself. Scope either with <b>Tools</b> and <b>Projects</b> above.</p>
               <div v-show="showAddAgent">
           <div class="lbl" style="margin-top:18px">New agent</div>

@@ -1,5 +1,6 @@
 <script>
 import { useDashboard } from '../state/context'
+import { t } from '../state/i18n'
 import ProviderLogo from './ProviderLogo.vue'
 
 // One tool, over whichever list opened it (a platform shelf, a comparison, a provider's
@@ -25,9 +26,9 @@ export default {
       <b>{{drawerEp.name||clip(drawerEp.summary, 90)}}</b>
     </div>
     <span class="td-nav">
-      <button @click="stepTool(-1)" aria-label="Previous tool" title="Previous (↑)"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
-      <button @click="stepTool(1)" aria-label="Next tool" title="Next (↓)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
-      <button @click="closeTool" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      <button @click="stepTool(-1)" :aria-label="t('drawer.prev')" :title="t('drawer.prev')"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
+      <button @click="stepTool(1)" :aria-label="t('drawer.next')" :title="t('drawer.next')"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
+      <button @click="closeTool" :aria-label="t('drawer.close')" :title="t('drawer.close')"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </span>
   </div>
 
@@ -36,9 +37,9 @@ export default {
     <p v-if="drawerNote" class="td-caveat">{{drawerNote}}</p>
 
     <div class="td-stats">
-      <div><span>Price</span><b>{{toolPrice(drawerEp)}}</b></div>
-      <div><span>Works</span><b>{{drawerStats.works ? drawerStats.works.pct+'%' : '—'}}</b><i v-if="drawerStats.works">{{approxCalls(drawerStats.works.n)}}, 30 days</i></div>
-      <div><span>Reviews</span><b v-if="drawerStats.useful" class="rev" :class="drawerStats.useful.tone">{{drawerStats.useful.label}}</b><b v-else-if="drawerEp.reviews" class="rev early">Early</b><b v-else>—</b><i v-if="drawerEp.reviews">{{approxTeams(drawerEp.reviews.teams)}}</i></div>
+      <div><span>{{t('drawer.price')}}</span><b>{{toolPrice(drawerEp)}}</b></div>
+      <div><span>{{t('drawer.works')}}</span><b>{{drawerStats.works ? drawerStats.works.pct+'%' : '—'}}</b><i v-if="drawerStats.works">{{approxCalls(drawerStats.works.n)}}, 30 days</i></div>
+      <div><span>{{t('drawer.reviews')}}</span><b v-if="drawerStats.useful" class="rev" :class="drawerStats.useful.tone">{{drawerStats.useful.label}}</b><b v-else-if="drawerEp.reviews" class="rev early">Early</b><b v-else>—</b><i v-if="drawerEp.reviews">{{approxTeams(drawerEp.reviews.teams)}}</i></div>
     </div>
 
     <!-- The primary button is the next step to your agent using this tool (`drawerNext`): connect the
