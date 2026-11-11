@@ -19,7 +19,9 @@ import json
 import math
 import re
 import shlex
+from collections import defaultdict
 from collections.abc import Callable
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -1161,16 +1163,23 @@ W_SUMMARY = 2      # the endpoint's own one-line description
 W_PATH = 1         # id, path, provider — a hit here is incidental as often as it is meaningful
 
 
+def fold(text: str) -> str:
+    """Lowercase with diacritics removed; CJK and digits kept."""
+    decomposed = unicodedata.normalize("NFKD", text or "")
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+
+
 def _tokens(text: str) -> list[str]:
-    return [t for t in _SPLIT.split(text.lower()) if t]
+    return [t for t in _SPLIT.split(fold(text)) if t]
 
 
 # Pure function words. They carry no meaning about WHICH endpoint, but each one inflates the query's
 # token count — and with it the number of real words a row must match to be admitted. "trending
 # repositories on github this week" is a 3-word query wearing 6 tokens; dropping these makes the
 # miss allowance apply to the words that matter. Never words that select ("open", "search", "list").
+_VIETNAMESE_STOPWORDS = frozenset("""va cua cac nhung cho tai tren mot de la voi trong ra vao duoc bi boi tu nay do kia ay""".split())
 _STOPWORDS = frozenset("""a an and are as at be by can do does for from how i in is it its me my
-    of on or that the this to was what when where which who will with you your""".split())
+    of on or that the this to was what when where which who will with you your""".split()) | _VIETNAMESE_STOPWORDS
 
 
 def _haystacks(ep: dict, cat: Catalog) -> list[tuple[int, str]]:
@@ -1260,8 +1269,15 @@ def _match(query: str, cat: Catalog, stems: bool = False):
     if not tokens:
         return None
     short = _short_provider_names(cat)
-    variants = [_needles([tok, *((_stem(tok),) if stems else ()), *cat.aliases.get(tok, ())], whole=tok in short)
-                for tok in tokens]
+    phrase_aliases: dict[int, list[str]] = defaultdict(list)
+    for n in (2, 3):
+        for i in range(len(tokens) - n + 1):
+            ph = " ".join(tokens[i:i + n])
+            if ph in cat.aliases:
+                for idx in range(i, i + n):
+                    phrase_aliases[idx].extend(cat.aliases[ph])
+    variants = [_needles([tok, *((_stem(tok),) if stems else ()), *cat.aliases.get(tok, ()), *phrase_aliases.get(i, ())], whole=tok in short)
+                for i, tok in enumerate(tokens)]
     # A token that IS a platform slug ("tiktok", "linkedin") is the caller's hard filter, but idf
     # prices it low — half the catalog serves the big platforms — so rows matching a rarer facet
     # word ("followers") outranked rows matching the asked-for platform. Double the weight where a

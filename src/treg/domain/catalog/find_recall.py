@@ -52,7 +52,8 @@ _SPLIT = store._SPLIT        # the search tokenizer's cut: letters, digits, CJK
 # Function words of the languages people type into the box, beyond the search stopwords.
 _ROMANCE = frozenset("""de no les des la le et em os as um uma que qui une un pour moi del el los las
     en con por para da do dos das du au aux se il lo gli""".split())
-STOPWORDS = store._STOPWORDS | _ROMANCE | {"many", "get"}
+_VIETNAMESE = frozenset("""va cua cac nhung cho tai tren mot de la voi trong ra vao duoc bi boi tu nay do kia ay""".split())
+STOPWORDS = store._STOPWORDS | _ROMANCE | _VIETNAMESE | {"many", "get"}
 
 
 def fold(text: str) -> str:
@@ -333,6 +334,19 @@ def lexical(query: str, ix: Index, aliases: dict[str, list[str]]) -> list[float]
             scores[i] += weight
         for i in prefix:
             scores[i] += weight * PREFIX_WEIGHT
+
+    # Multi-word phrase matches from aliases (e.g. "tao anh", "chung khoan", "giong noi")
+    raw_words = [w for w, _ in qwords]
+    for n in (2, 3):
+        for i in range(len(raw_words) - n + 1):
+            phrase = " ".join(raw_words[i:i + n])
+            for a in aliases.get(phrase, ()):
+                parts = [stem(x) for x in words(a)]
+                if parts:
+                    phrase_hits = set.intersection(*(set(ix.postings.get(x, ())) for x in parts))
+                    phrase_weight = math.log(1 + (len(ix.units) + 0.5) / 1.5) * 2.0
+                    for idx in phrase_hits:
+                        scores[idx] += phrase_weight
     return scores
 
 
