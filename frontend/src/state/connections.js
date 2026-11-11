@@ -249,5 +249,36 @@ async disconnect(c){
       this.confirmDisc=null;
       try{ await this.api('/connections/'+c.id,{method:'DELETE'}); await this.loadAll(); }
       catch(e){ this.connErr=String(e.message||e); }
+    },
+async testConnection(a){
+      const sid = (a.c && a.c.id) || (a.s && a.s.id);
+      if(!sid) return;
+      this.testConnBusy = sid;
+      this.testConnResult = { ...(this.testConnResult || {}), [sid]: { loading: true } };
+      try {
+        const res = await this.api('/connections/' + sid + '/test', { method: 'POST' });
+        this.testConnResult = {
+          ...(this.testConnResult || {}),
+          [sid]: {
+            loading: false,
+            ok: !!res.ok,
+            latency: res.latency_ms,
+            message: res.message,
+            checked_at: res.checked_at,
+          }
+        };
+        if(this.loadHealth) this.loadHealth();
+      } catch(e) {
+        this.testConnResult = {
+          ...(this.testConnResult || {}),
+          [sid]: {
+            loading: false,
+            ok: false,
+            message: e.detail || e.message || 'Lỗi kiểm tra kết nối'
+          }
+        };
+      } finally {
+        this.testConnBusy = null;
+      }
     }
 }

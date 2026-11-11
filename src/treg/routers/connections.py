@@ -279,6 +279,23 @@ async def revoke_connection(
         raise _connect_http_error(exc) from exc
 
 
+@management_router.post("/connections/{secret_id}/test")
+async def test_connection(
+    secret_id: int,
+    request: Request,
+    caller: Caller = Depends(require_member),
+) -> dict:
+    """Test and ping a single connection/secret, measuring latency and health status."""
+    try:
+        return await connect_use_cases.test_connection(
+            secret_id=secret_id,
+            org_id=caller.org_id,
+            client_factory=lambda: request.app.state.http,
+        )
+    except connect_use_cases.ConnectError as exc:
+        raise _connect_http_error(exc) from exc
+
+
 health_router = APIRouter()
 
 

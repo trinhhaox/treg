@@ -908,7 +908,32 @@ class Tool(SQLModel, table=True):
     # Optional sub-scope inside the org. NULL = ORG-WIDE. A project is a LABEL + ACL scope, never a
     # namespace: `name` stays unique per (org_id, name). See Project.
     project_id: int | None = Field(default=None, foreign_key="project.id", index=True)
+    cache_ttl_seconds: int = Field(default=0)
+    fallback_tool_id: int | None = Field(default=None, foreign_key="tool.id", nullable=True)
     created_at: NaiveUTC = Field(default_factory=_now)
+
+
+class ToolCacheRecord(SQLModel, table=True):
+    """TTL response cache for custom and registered tools, bounding memory & disk footprint."""
+
+    __tablename__ = "tool_cache"
+    __table_args__ = (
+        Index("ix_tool_cache_key", "tool_id", "cache_key", unique=True),
+        Index("ix_tool_cache_expires", "expires_at"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    tool_id: int = Field(foreign_key="tool.id", index=True)
+    org_id: int = Field(foreign_key="org.id", index=True)
+    cache_key: str = Field(index=True)
+    method: str = Field(default="GET")
+    path_url: str = Field(default="")
+    status_code: int = Field(default=200)
+    headers_json: str = Field(default="{}")
+    response_body: bytes = Field(default=b"")
+    body_size: int = Field(default=0)
+    created_at: NaiveUTC = Field(default_factory=_now)
+    expires_at: NaiveUTC = Field(index=True)
 
 
 class CapabilityPin(SQLModel, table=True):

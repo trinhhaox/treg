@@ -222,6 +222,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     'activity.spent': 'Đã chi tiêu',
     'activity.charges': 'Khoản phí',
     'activity.load_older': 'Tải thêm hoạt động cũ hơn',
+    'activity.export_csv': 'Xuất CSV',
+    'activity.exporting': 'Đang xuất…',
 
     // Team Page
     'team.title': 'Đội ngũ: {name}',
@@ -306,6 +308,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     'conn_card.rename': 'Đổi tên',
     'conn_card.connected_account': 'Tài khoản đã kết nối',
     'conn_card.saved_as_secret': 'đã lưu dưới dạng bí mật mã hóa',
+    'conn_card.test': 'Kiểm tra',
+    'conn_card.testing': 'Đang kiểm tra…',
+    'conn_card.test_ok': 'Hoạt động tốt',
+    'conn_card.test_fail': 'Lỗi kết nối',
 
     // Tool Drawer
     'drawer.price': 'Giá',
@@ -570,6 +576,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     'activity.spent': 'spent',
     'activity.charges': 'charges',
     'activity.load_older': 'Load older activity',
+    'activity.export_csv': 'Export CSV',
+    'activity.exporting': 'Exporting…',
 
     // Team Page
     'team.title': 'Team: {name}',
@@ -654,6 +662,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     'conn_card.rename': 'Rename',
     'conn_card.connected_account': 'Connected account',
     'conn_card.saved_as_secret': 'saved as a secret',
+    'conn_card.test': 'Test',
+    'conn_card.testing': 'Testing…',
+    'conn_card.test_ok': 'Healthy',
+    'conn_card.test_fail': 'Failed',
 
     // Tool Drawer
     'drawer.price': 'Price',

@@ -33,7 +33,7 @@ const dayLabel = (iso, opts) => new Date(iso + 'T00:00:00Z').toLocaleDateString(
 export default {
   components: { PageTabs, DataTable, SpendBars, SelectMenu, DateRangePicker, InfoTip, Money },
   setup: useDashboard,
-  data: () => ({ memberColumns: BY_MEMBER, toolColumns: BY_TOOL, dayColumns: BY_DAY, tagColumns: BY_TAG, spendColumns: BY_SERIES, GROUPS, STACKS, PAGE, NO_KEY }),
+  data: () => ({ memberColumns: BY_MEMBER, toolColumns: BY_TOOL, dayColumns: BY_DAY, tagColumns: BY_TAG, spendColumns: BY_SERIES, GROUPS, STACKS, PAGE, NO_KEY, exportingCsv: false }),
   computed: {
     feedColumns() {
       return [
@@ -105,15 +105,44 @@ export default {
       const u = this.tagUsage[key]
       return [...u.rows, ...(u.unattributed_micro ? [{ value: null, calls: null, charged_micro: u.unattributed_micro }] : [])]
     },
+    async exportActivityCsv() {
+      this.exportingCsv = true
+      try {
+        const keyParam = this.activityKey ? `?api_key_id=${encodeURIComponent(this.activityKey)}` : ''
+        const url = `/activity/export.csv${keyParam}`
+        const res = await fetch(url, { credentials: 'include', headers: { ...(this.headers ? this.headers() : {}) } })
+        if (!res.ok) throw new Error(await res.text() || 'Export failed')
+        const blob = await res.blob()
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = downloadUrl
+        a.download = `treg-activity-${this.activeOrgId || 'report'}-${new Date().toISOString().slice(0, 10)}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(downloadUrl)
+      } catch (e) {
+        alert('Không thể xuất CSV: ' + (e.message || e))
+      } finally {
+        this.exportingCsv = false
+      }
+    },
   },
 }
 </script>
 
 <template>
 <div class="pl act">
-  <header class="pl-hero">
-    <h1>{{t('activity.title')}}</h1>
-    <p class="pl-lede">{{t('activity.subtitle', {name: activeName})}}</p>
+  <header class="pl-hero" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>{{t('activity.title')}}</h1>
+      <p class="pl-lede">{{t('activity.subtitle', {name: activeName})}}</p>
+    </div>
+    <div style="margin-top:8px">
+      <button class="pl-btn sm" @click="exportActivityCsv" :disabled="exportingCsv" title="Xuất toàn bộ lịch sử cuộc gọi và chi phí ra file CSV">
+        📥 {{exportingCsv ? (t('activity.exporting') || 'Đang xuất…') : (t('activity.export_csv') || 'Xuất CSV')}}
+      </button>
+    </div>
   </header>
   <!-- One page, two readings of the same traffic: the RAW FEED (every call, newest first)
        and the ROLLUPS (who/what/when, and spend per caller tag). They were separate sidebar

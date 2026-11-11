@@ -64,18 +64,20 @@ export default {
              @click="openProvider(p.service)" @keydown.enter.self="openProvider(p.service)">
           <ProviderLogo :service="p.service" large />
           <span class="pl-tool-b"><b>{{p.display_name}}</b>
-            <span class="pl-meta">{{authLabel(p)}}<template v-if="n"> · {{n}} connected</template></span></span>
+            <span class="pl-meta">{{authLabel(p)}}<template v-if="n"> · {{n}} {{t('conn.connected_suffix') || 'đã kết nối'}}</template></span></span>
           <span class="cn-prov-a" @click.stop>
             <button class="pl-btn sm ghost" :disabled="connBusy"
-                    @click="startConnect(p)" :title="pasted ? 'Paste your own '+p.display_name+' key; treg keeps it server-side' : 'Log in to '+p.display_name+' and approve access'">
+                    @click="startConnect(p)" :title="pasted ? (t('conn.paste_key_title', {name: p.display_name}) || ('Dán khóa ' + p.display_name)) : (t('conn.login_title', {name: p.display_name}) || ('Đăng nhập vào ' + p.display_name))">
               {{connectLabel(p, n)}}</button>
           </span>
         </div>
       </div>
     </div>
-    <p v-if="connQ && !providerGroups.length" class="pl-empty">No provider matches “{{connQ.trim()}}”.
-      <button class="pl-link" @click="openToolRequest()">Ask for it</button></p>
-    <p v-else-if="!providers.length" class="pl-empty">Loading providers…</p>
+    <p v-if="connQ && !providerGroups.length" class="pl-empty">
+      {{t('conn.no_match') || 'Không tìm thấy nhà cung cấp nào khớp với'}} “{{connQ.trim()}}”.
+      <button class="pl-link" @click="openToolRequest()">{{t('conn.ask_for_it') || 'Yêu cầu bổ sung'}}</button>
+    </p>
+    <p v-else-if="!providers.length" class="pl-empty">{{t('common.loading') || 'Đang tải…'}}</p>
   </section>
 </div>
 </template>

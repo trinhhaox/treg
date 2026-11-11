@@ -69,6 +69,7 @@ export default function data(){
       // Connections: registry OAuth connects (see oauth_providers.py). `providers` is what treg
       // holds an approved app for; `connections` is what this org has actually connected.
       providers:[], connections:[], connErr:'', connBusy:false, confirmDisc:null, resPick:null,
+      testConnBusy: null, testConnResult: {},
       mkService:null,  // the open provider page
       byokFocus:null,  // provider card to flash after a "Bring your own key" jump to Connections
       connQ:'', connKind:'',  // the provider filter on Connections, and '' | 'account' | 'key'

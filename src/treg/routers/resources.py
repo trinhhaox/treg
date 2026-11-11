@@ -216,6 +216,8 @@ class ToolIn(BaseModel):
     examples: list[dict] | None = None  # [{method, path, note}]
     cli: dict | None = None  # local-run profile for `treg run`
     project: str | int | None = None  # project slug or id; None = org-wide (the default)
+    cache_ttl_seconds: int = 0
+    fallback_tool_id: int | None = None
 
 
 class ToolUpdate(BaseModel):
@@ -226,6 +228,8 @@ class ToolUpdate(BaseModel):
     examples: list[dict] | None = None
     cli: dict | None = None  # set/replace the local-run profile; explicit null clears it
     project: str | int | None = None  # move between projects; explicit null makes it org-wide
+    cache_ttl_seconds: int | None = None
+    fallback_tool_id: int | None = None
 
 
 def _host_of(url: str) -> str:
@@ -360,6 +364,8 @@ async def create_tool(
         host=_host_of(body.base_url), bindings=bindings, health_check=body.health_check,
         examples=body.examples or [], cli=body.cli, bundle_id=body.bundle_id,
         project_id=project.id if project else None,
+        cache_ttl_seconds=body.cache_ttl_seconds,
+        fallback_tool_id=body.fallback_tool_id,
     )
     db.add(tool)
     try:
@@ -472,6 +478,8 @@ def _tool_view(t: Tool) -> dict:
         "server_runnable": False,
         "project_id": t.project_id,  # None = org-wide
         "bundle_id": t.bundle_id,
+        "cache_ttl_seconds": getattr(t, "cache_ttl_seconds", 0) or 0,
+        "fallback_tool_id": getattr(t, "fallback_tool_id", None),
     }
 
 

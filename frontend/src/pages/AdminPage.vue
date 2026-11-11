@@ -7,6 +7,7 @@ export default { setup: useDashboard }
 
           <h1>{{t('admin.title')}}</h1>
           <p class="sub">{{t('admin.subtitle')}}</p>
+          <div v-if="err" class="banner" style="margin:12px 0 16px;background:#ffefef;color:#b00020;padding:10px 14px;border-radius:6px;font-size:13px">{{err}}</div>
           <div class="statgrid" v-if="adminStats"><div class="stat"><div class="n">{{adminStats.totals.users}}</div><div class="l">{{t('admin.users')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.orgs}}</div><div class="l">{{t('admin.orgs')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.tools}}</div><div class="l">{{t('admin.tools')}}</div></div><div class="stat"><div class="n">{{adminStats.totals.calls}}</div><div class="l">{{t('admin.calls')}}</div></div><div class="stat"><div class="n">{{adminStats.calls.success_rate==null?'-':Math.round(adminStats.calls.success_rate*100)+'%'}}</div><div class="l">{{t('admin.success_rate')}}</div></div></div>
 
           <template v-if="admHub && admHub.on">

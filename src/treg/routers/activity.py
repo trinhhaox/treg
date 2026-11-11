@@ -5,9 +5,11 @@ feed: the three sources merged newest first and paged by one cursor, so a page n
 that a later page fills in above rows already shown.
 """
 
+import csv
 from datetime import datetime
+import io
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
@@ -174,3 +176,81 @@ async def activity_feed(
             for _, s, _, r in page]
     last = page[-1] if len(found) > limit else None
     return {"rows": rows, "next": f"{last[0].isoformat()}~{last[1]}~{last[2]}" if last else None}
+
+
+@app.get("/activity/export.csv")
+async def export_activity_csv(
+    limit: int = 1000,
+    api_key_id: int | None = None,
+    caller: Caller = Depends(require_member),
+    db: AsyncSession = Depends(get_session),
+) -> Response:
+    """Export recent activity calls as a CSV spreadsheet with UTF-8 BOM."""
+    limit = max(1, min(limit, 5000))
+    pins = caller.membership.pinned_tags
+    query = (
+        select(CallRecord)
+        .options(defer(CallRecord.error_request), defer(CallRecord.error_response))
+        .where(
+            CallRecord.org_id == caller.org_id,
+            CallRecord.kind.notin_(NOT_A_CALL),
+            *pinned_tag_predicates(CallRecord.tags, pins),
+        )
+        .order_by(CallRecord.created_at.desc(), CallRecord.id.desc())
+        .limit(limit)
+    )
+    if api_key_id is not None:
+        query = query.where(CallRecord.api_key_id == api_key_id)
+
+    records = (await db.execute(query)).scalars().all()
+    await db.close()
+
+    output = io.StringIO()
+    output.write("\ufeff")  # UTF-8 BOM for Excel
+    writer = csv.writer(output)
+    writer.writerow([
+        "Thời gian (UTC)",
+        "ID",
+        "Thành viên",
+        "Công cụ",
+        "Phương thức",
+        "Đường dẫn",
+        "Mã HTTP",
+        "Độ trễ (ms)",
+        "Chi phí ($ USD)",
+        "Khóa API / Agent",
+        "Bộ đệm (Cache)",
+        "Ghi chú",
+    ])
+
+    for r in records:
+        charged = r.cost_charged_micro or r.cost_estimated_micro or 0
+        cost_usd = f"{charged / 1_000_000:.6f}".rstrip("0").rstrip(".")
+        if cost_usd == "" or cost_usd == "0":
+            cost_usd = "0.00"
+        writer.writerow([
+            r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else "",
+            r.id,
+            r.user_email or "",
+            r.tool_name or "",
+            r.method or "",
+            r.path or "",
+            r.status_code if r.status_code is not None else "",
+            r.duration_ms if r.duration_ms is not None else "",
+            cost_usd,
+            r.api_key_name or r.api_key_prefix or "",
+            "Có" if r.cached else "Không",
+            r.refused_by or "",
+        ])
+
+    csv_data = output.getvalue()
+    filename = f"treg-activity-{caller.org_id}-{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=csv_data,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache",
+        },
+    )
+

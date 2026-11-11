@@ -26,9 +26,10 @@ from ...domain.catalog import results as catalog_results
 from ...domain.catalog import schema, store as catalog_store
 from ...domain.money import with_margin
 from ...domain import provider_resources
+from ...domain import tool_cache
 from ...infra import money_admission, org_endpoint_quota
 from ...infra.db import session_maker
-from ...models import Secret
+from ...models import Secret, Tool
 from ...sandbox_identity import visitor_name
 from ...domain.capacity import marks as capacity_marks
 from ...domain.capacity import rate_observe
@@ -1580,23 +1581,117 @@ async def _execute_call(request: _ApplicationRequest, upstream_client: httpx.Asy
                     relay_options["before_outbound"] = admit_outbound
                 else:
                     await admit_outbound()
-                upstream_started = _now_ms()
-                reached = relay_module.ON_SEND.set(_reached_provider(request.context))
-                try:
-                    response = await relay(
-                        upstream_request,
-                        upstream_url, tool, secrets, upstream_client,
-                        drop_params=drop_params or None,
-                        # Identity encoding wherever the body will be READ: the settle's cost
-                        # evidence, and the archive's recording of an own-key answer.
-                        force_identity=mk is not None and (
-                            mk.metered or mk.free_owned_poll or own_key_archivable),
-                        **relay_options,
+
+                # --- TTL Cache Check for Tools ---
+                tool_ttl = getattr(tool, "cache_ttl_seconds", 0) or 0
+                no_cache_req = "no-cache" in (request.headers.get("cache-control") or "").lower() or request.headers.get("x-treg-no-cache") == "1"
+                t_cache_key = None
+                tool_cache_hit = False
+
+                if mk is None and tool_ttl > 0 and request.method == "GET" and not no_cache_req and hasattr(tool, "id") and tool.id:
+                    t_cache_key = tool_cache.make_cache_key(
+                        tool_id=tool.id,
+                        method=request.method,
+                        path=upstream_url,
+                        query=request.url.query or "",
+                        body=caller_body,
                     )
-                finally:
-                    relay_module.ON_SEND.reset(reached)
-                    rate_observe.record(rate_seen, response.status if response is not None else None)
-                upstream_ms = _now_ms() - upstream_started
+                    cached_entry = await tool_cache.lookup_cache(db, tool.id, t_cache_key)
+                    if cached_entry is not None:
+                        async def _cached_body_iter(b: bytes):
+                            yield b
+                        async def _cached_close():
+                            pass
+                        cached_hdrs = tuple([
+                            (k.encode("latin-1"), v.encode("latin-1"))
+                            for k, v in json.loads(cached_entry.headers_json or "{}").items()
+                        ] + [(b"x-treg-cache", b"HIT")])
+                        response = UpstreamResponse(
+                            status=cached_entry.status_code,
+                            raw_headers=cached_hdrs,
+                            body_stream=_cached_body_iter(cached_entry.response_body),
+                            close=_cached_close,
+                        )
+                        body = cached_entry.response_body
+                        served_hit = True
+                        request.context.cached = True
+                        tool_cache_hit = True
+                        upstream_ms = 1
+
+                if not tool_cache_hit:
+                    upstream_started = _now_ms()
+                    reached = relay_module.ON_SEND.set(_reached_provider(request.context))
+                    try:
+                        response = await relay(
+                            upstream_request,
+                            upstream_url, tool, secrets, upstream_client,
+                            drop_params=drop_params or None,
+                            force_identity=mk is not None and (
+                                mk.metered or mk.free_owned_poll or own_key_archivable),
+                            **relay_options,
+                        )
+                    except Exception:
+                        fb_id = getattr(tool, "fallback_tool_id", None)
+                        if mk is None and fb_id:
+                            fb_tool = (await db.execute(select(Tool).where(Tool.id == fb_id, Tool.org_id == caller.org_id))).scalar_one_or_none()
+                            if fb_tool:
+                                fb_secrets = {}
+                                for sid in {b.get("secret_id") for b in fb_tool.bindings if b.get("secret_id") is not None}:
+                                    s = await db.get(Secret, sid)
+                                    if s and s.org_id == caller.org_id:
+                                        fb_secrets[sid] = s
+                                fb_path = rest.partition("/")[2] if "/" in rest else ""
+                                fb_url = f"{fb_tool.base_url.rstrip('/')}/{fb_path}"
+                                response = await relay(upstream_request, fb_url, fb_tool, fb_secrets, upstream_client, **relay_options)
+                                response.raw_headers = response.raw_headers + ((b"x-treg-fallback-used", b"1"),)
+                            else:
+                                raise
+                        else:
+                            raise
+                    finally:
+                        relay_module.ON_SEND.reset(reached)
+                        rate_observe.record(rate_seen, response.status if response is not None else None)
+                    upstream_ms = _now_ms() - upstream_started
+
+                    # Smart Fallback Router: on 429 or 5xx, retry with fallback_tool
+                    fb_id = getattr(tool, "fallback_tool_id", None)
+                    if mk is None and fb_id and response is not None and response.status in (429, 502, 503, 504):
+                        fb_tool = (await db.execute(select(Tool).where(Tool.id == fb_id, Tool.org_id == caller.org_id))).scalar_one_or_none()
+                        if fb_tool:
+                            fb_secrets = {}
+                            for sid in {b.get("secret_id") for b in fb_tool.bindings if b.get("secret_id") is not None}:
+                                s = await db.get(Secret, sid)
+                                if s and s.org_id == caller.org_id:
+                                    fb_secrets[sid] = s
+                            fb_path = rest.partition("/")[2] if "/" in rest else ""
+                            fb_url = f"{fb_tool.base_url.rstrip('/')}/{fb_path}"
+                            try:
+                                fb_res = await relay(upstream_request, fb_url, fb_tool, fb_secrets, upstream_client, **relay_options)
+                                await response.close()
+                                response = fb_res
+                                response.raw_headers = response.raw_headers + ((b"x-treg-fallback-used", b"1"),)
+                            except Exception:
+                                pass
+
+                    # TTL Cache Store: store successful GET response
+                    if t_cache_key and tool_ttl > 0 and 200 <= response.status < 300:
+                        response, whole = await _read_whole_if_small(response, tool_cache.MAX_CACHE_BODY_BYTES)
+                        if whole is not None:
+                            body = whole
+                            hdrs = {k.decode("latin-1"): v.decode("latin-1") for k, v in response.raw_headers}
+                            await tool_cache.store_cache(
+                                db,
+                                tool_id=tool.id,
+                                org_id=caller.org_id,
+                                cache_key=t_cache_key,
+                                method=request.method,
+                                path=upstream_url,
+                                status_code=response.status,
+                                headers=hdrs,
+                                body=whole,
+                                ttl_seconds=tool_ttl,
+                            )
+
             streaming_free_result = (mk is not None and mk.streamable_free_result
                                      and request.method == "GET" and 200 <= response.status < 300)
             if (served is None and mk is not None and (mk.metered or mk.free_owned_poll)

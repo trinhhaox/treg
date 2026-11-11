@@ -26,6 +26,23 @@ export default { setup: useDashboard }
               <button v-if="tForm.bindings.length>1" class="btn sm" @click="removeBinding(i)" aria-label="Remove binding">✕</button>
             </div>
             <p class="sub" style="font-size:11px"><span class="mono">{secret}</span> becomes the credential - e.g. header <span class="mono">Authorization: Bearer {secret}</span>, or query <span class="mono">api_key={secret}</span>. Every binding applies on each call (multi-credential upstreams).</p>
+            <div class="frow" style="margin-top:10px">
+              <label>Bộ nhớ đệm (TTL Cache)</label>
+              <div style="display:flex;align-items:center;gap:8px;flex:1">
+                <input type="number" min="0" max="86400" v-model.number="tForm.cache_ttl_seconds" placeholder="0" style="width:100px;padding:6px 8px"/>
+                <span class="sub" style="font-size:11.5px">giây (0 = tắt cache; ví dụ 300 = lưu đệm 5 phút, tối đa 1MB/lượt)</span>
+              </div>
+            </div>
+            <div class="frow" style="margin-top:8px">
+              <label>Dự phòng khi lỗi (Smart Fallback)</label>
+              <select v-model="tForm.fallback_tool_id" class="msel" style="flex:1">
+                <option :value="null">— Không dùng dự phòng —</option>
+                <option v-for="ot in (tools || []).filter(x => x.id !== tForm.id)" :key="ot.id" :value="ot.id">
+                  {{ot.name}} ({{ot.base_url}})
+                </option>
+              </select>
+            </div>
+            <p class="sub" style="font-size:11px;margin-top:-4px">Khi API chính gặp lỗi 429 (Rate Limit) hoặc 5xx/Timeout, hệ thống sẽ tự động gọi sang công cụ dự phòng để Agent không bị gián đoạn.</p>
             <div class="frow" v-if="projects.length"><label>Project</label>
               <select v-model="tForm.project" class="msel">
                 <option :value="null">— team-wide (everyone) —</option>

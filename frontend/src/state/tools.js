@@ -8,12 +8,14 @@ openAddTool(mode){ this.addToolMenu=false; this.loadProjectsIfNeeded(); this.loa
         ? {id:null, mode:'cli', name:'', base_url:'', bindings:[],
            cli:{bin:'', package:'', enabled:true, auth_mechanism:'env', deny:[], deny_defaults:true,
                 inject:[{via:'env', name:'', secret_id:(this.secrets[0]?this.secrets[0].id:null)}]}}
-        : {id:null, mode:'endpoint', name:'', base_url:'', bindings:[this.defaultBinding()], project:null};
+        : {id:null, mode:'endpoint', name:'', base_url:'', bindings:[this.defaultBinding()], project:null, cache_ttl_seconds:0, fallback_tool_id:null};
       if(mode==='cli') this.tForm.project=null;
       if(mode==='cli') this.loadCatalogClis();
       this.toolErr=''; this.newTool=true; }); },
 openEditTool(t){ this.loadProjectsIfNeeded(); this.loadSecrets().then(()=>{ const cur=(this.projects||[]).find(p=>p.id===t.project_id);
       this.tForm={ id:t.id, mode:(t.cli?'cli':'endpoint'), name:t.name, oldName:t.name, base_url:t.base_url, project:(cur?cur.slug:null),
+        cache_ttl_seconds: t.cache_ttl_seconds || 0,
+        fallback_tool_id: t.fallback_tool_id || null,
         bindings:(t.bindings||[]).map(b=>({secret_id:b.secret_id, injector:b.injector||'env', location:b.location||'header', name:b.name||'Authorization', format:b.format||'Bearer {secret}', secret_field:b.secret_field||'access_token'})),
         // deep-copy the cli profile — the PATCH replaces it wholesale, so every field must round-trip
         cli: t.cli ? Object.assign(JSON.parse(JSON.stringify(t.cli)), {package:t.cli.package||'', deny:(t.cli.deny||[]).slice(), deny_defaults:t.cli.deny_defaults!==false,
@@ -51,7 +53,11 @@ async saveTool(){ const f=this.tForm;
         const hdr=f.bindings.filter(b=>(b.location||'header')==='header').map(b=>(b.name||'Authorization').toLowerCase());
         if(new Set(hdr).size!==hdr.length){ this.toolErr='Two bindings target the same header - give each a distinct name.'; return; }  // catch the collision inline, clearly
         const bindings=f.bindings.map(b=>({secret_id:b.secret_id, injector:b.injector, location:b.location, name:b.name, format:b.format, secret_field:b.secret_field}));
-        body = f.id ? {base_url:f.base_url.trim(), bindings, project:f.project||null} : {name:f.name.trim(), base_url:f.base_url.trim(), bindings, project:f.project||null};
+        const extraFields = {
+          cache_ttl_seconds: Number(f.cache_ttl_seconds) || 0,
+          fallback_tool_id: f.fallback_tool_id || null
+        };
+        body = f.id ? {base_url:f.base_url.trim(), bindings, project:f.project||null, ...extraFields} : {name:f.name.trim(), base_url:f.base_url.trim(), bindings, project:f.project||null, ...extraFields};
         // A rename is the tool name agents call; the server moves a connection's name along with it.
         if(f.id && f.name.trim() && f.name.trim()!==f.oldName) body.name=f.name.trim();
       }

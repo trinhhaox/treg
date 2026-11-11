@@ -24,6 +24,14 @@ export default {
       return (this.a.c.capabilities || []).map(cap => this.capLabel(cap, ask)).join(', ')
     },
     missing() { return (this.a.c.missing_capabilities || []).map(cap => this.capLabel(cap, { provider: this.a.p, conn: this.a.c })).join(' + ') },
+    testResult() {
+      const sid = (this.a.c && this.a.c.id) || (this.a.s && this.a.s.id)
+      return sid && this.testConnResult ? this.testConnResult[sid] : null
+    },
+    isTesting() {
+      const sid = (this.a.c && this.a.c.id) || (this.a.s && this.a.s.id)
+      return sid && this.testConnBusy === sid
+    },
   },
 }
 </script>
@@ -39,6 +47,9 @@ export default {
       <span v-if="a.c && a.c.name!==a.service" class="pl-meta" :title="'treg call '+a.c.name">{{a.c.name}}</span>
     </span>
     <span class="cn-st" :title="a.st.title">{{a.st.label}}</span>
+    <span v-if="testResult && testResult.loading" class="badge" style="background:#e0f2fe;color:#0369a1;margin-left:8px;font-size:11px">⚡ {{t('conn_card.testing')}}</span>
+    <span v-else-if="testResult && testResult.ok" class="badge ok" style="margin-left:8px;font-size:11px" :title="testResult.message">✓ {{testResult.latency ? testResult.latency + 'ms' : t('conn_card.test_ok')}}</span>
+    <span v-else-if="testResult && !testResult.ok" class="badge invalid" style="margin-left:8px;font-size:11px" :title="testResult.message">✕ {{t('conn_card.test_fail')}}</span>
   </div>
 
   <p class="cn-what">
@@ -53,6 +64,7 @@ export default {
   <!-- A named key: remove it. Pasting one through the provider's button replaces it in use. -->
   <div v-if="a.s" class="cn-acts">
     <span class="cn-links">
+      <button :disabled="isTesting" @click="testConnection(a)" title="Kiểm tra kết nối">{{isTesting ? t('conn_card.testing') : t('conn_card.test')}}</button>
       <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">{{t('conn_card.manage')}}</a>
       <button class="cn-del" :class="{armed:confirmDelSecret===a.s.id}" @click="deleteSecret(a.s)">
         {{confirmDelSecret===a.s.id ? t('conn_card.remove_confirm') : t('conn_card.remove')}}</button>
@@ -89,6 +101,7 @@ export default {
     <span class="cn-links">
       <a v-if="manage" :href="'/app/marketplace/'+encodeURIComponent(a.service)" @click.prevent="openProvider(a.service)">{{t('conn_card.manage')}}</a>
       <template v-else>
+        <button :disabled="isTesting" @click="testConnection(a)" title="Kiểm tra kết nối">{{isTesting ? t('conn_card.testing') : t('conn_card.test')}}</button>
         <button @click="renameConnection(a.c)" title="Change the tool name an agent calls for this account">{{t('conn_card.rename')}}</button>
         <button v-if="!fixable && a.p" :disabled="connBusy" @click="renewConnection(a)">{{renewLabel}}</button>
       </template>

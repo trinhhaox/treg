@@ -1,8 +1,17 @@
 
 export default {
-async loadAdmin(){ this.confirmAdmUser=null; this.confirmAdmOrg=null;
-      try{ this.adminStats=await this.api('/admin/stats'); this.adminOrgs=await this.api('/admin/orgs'); this.adminUsers=await this.api('/admin/users'); }
-      catch(e){ this.err='Admin: '+(e.detail||e.status); }
+async loadAdmin(){ this.confirmAdmUser=null; this.confirmAdmOrg=null; this.adminBusy=true;
+      try{
+        const [stats, orgs, users] = await Promise.all([
+          this.api('/admin/stats').catch(e => { this.err = 'Lỗi thống kê: ' + (e.detail || e.status); return null; }),
+          this.api('/admin/orgs').catch(e => { this.err = 'Lỗi nạp tổ chức: ' + (e.detail || e.status); return []; }),
+          this.api('/admin/users').catch(e => { this.err = 'Lỗi nạp người dùng: ' + (e.detail || e.status); return []; }),
+        ]);
+        if(stats) this.adminStats=stats;
+        if(orgs) this.adminOrgs=orgs;
+        if(users) this.adminUsers=users;
+      }catch(e){ this.err='Admin: '+(e.detail||e.status); }
+      finally{ this.adminBusy=false; }
       this.loadAdminHub(); },
 // Hub listing review: a maker's `treg hub list` is a request; approve puts the tool in search,
 // reject takes it out with a reason the maker reads. A server without the hub (/meta.hub false)

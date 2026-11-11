@@ -1422,3 +1422,14 @@ async def list_connection_health(*, org_id: int, visible_ids_for) -> list[dict]:
         # health.needs_reconnect rides along so a credential treg cannot renew announces itself BEFORE
         # it dies. Nothing else surfaces that: it probes green until the moment it stops working.
         return [{**health._view(s), "needs_reconnect": health.needs_reconnect(s)} for s in rows]
+
+
+async def test_connection(*, secret_id: int, org_id: int, client_factory) -> dict:
+    async with session_maker() as db:
+        try:
+            return await health.test_one_secret(
+                db, client_factory(), secret_id=secret_id, org_id=org_id,
+            )
+        except ValueError as exc:
+            raise ConnectError("unknown_connection", str(exc)) from exc
+

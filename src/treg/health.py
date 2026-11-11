@@ -252,3 +252,87 @@ async def _notify(invalid: list[Secret], db: AsyncSession, client: httpx.AsyncCl
             await client.post(webhook, json={"owner": owner, "invalid_credentials": items}, timeout=10.0)
         except Exception:  # noqa: BLE001 — an alert hiccup must never break the run
             pass
+
+
+async def test_one_secret(
+    db: AsyncSession,
+    client: httpx.AsyncClient,
+    secret_id: int,
+    org_id: int,
+) -> dict:
+    """Test and ping a single connection/secret, measuring latency and updating health status."""
+    import time
+    now = utcnow_naive()
+    secret = (await db.execute(
+        select(Secret).where(Secret.id == secret_id, Secret.org_id == org_id)
+    )).scalar_one_or_none()
+    if secret is None:
+        raise ValueError("Secret not found")
+
+    if oauth_providers.is_paused(secret.provider):
+        return {
+            "ok": False,
+            "latency_ms": 0,
+            "status": "paused",
+            "message": "Nhà cung cấp này đang tạm ngưng trên hệ thống",
+            "checked_at": now.isoformat(),
+        }
+
+    t0 = time.perf_counter()
+    if secret.kind == "oauth":
+        try:
+            await oauth.ensure_fresh(secret, db, client)
+        except Exception as exc:
+            _mark(secret, "invalid", f"oauth refresh failed: {exc}", now)
+            await db.commit()
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            return {
+                "ok": False,
+                "latency_ms": latency_ms,
+                "status": "invalid",
+                "message": f"OAuth refresh thất bại: {exc}",
+                "checked_at": now.isoformat(),
+            }
+
+    tools = (await db.execute(
+        select(Tool).where(Tool.org_id == org_id)
+    )).scalars().all()
+    bound_tools = [
+        t for t in tools
+        if any(b.get("secret_id") == secret.id for b in t.bindings)
+    ]
+
+    status = "ok"
+    detail = "Khóa API hợp lệ"
+    latency_ms = 0
+
+    probe_tool = next((t for t in bound_tools if isinstance(t.health_check, dict) and t.health_check.get("path")), None)
+    if probe_tool is not None:
+        smap = {secret.id: secret}
+        t0 = time.perf_counter()
+        status, detail = await _probe(probe_tool, smap, client)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+    else:
+        try:
+            raw = crypto.decrypt(secret.value)
+            if not raw:
+                status = "invalid"
+                detail = "Khóa giải mã rỗng"
+            else:
+                latency_ms = max(1, int((time.perf_counter() - t0) * 1000))
+                detail = "Đã xác thực cấu hình hợp lệ"
+        except Exception as exc:
+            status = "invalid"
+            detail = f"Giải mã khóa thất bại: {exc}"
+
+    _mark(secret, status, detail, now)
+    await db.commit()
+
+    return {
+        "ok": status == "ok",
+        "latency_ms": latency_ms,
+        "status": status,
+        "message": detail,
+        "checked_at": now.isoformat(),
+    }
+
