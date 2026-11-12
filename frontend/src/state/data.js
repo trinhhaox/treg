@@ -126,6 +126,7 @@ export default function data(){
       tools:[], health:{}, calls:[], runs:[], callsLoaded:false, activityNext:null, activityOlderBusy:false, adminStats:null, adminOrgs:[], adminUsers:[],
       admHub:{on:false, state:'requested', rows:[], reason:{}, cap:{}, busy:null, updates:[]},  // hub listing review (superadmin)
       adminBusy:false, confirmAdmUser:null, confirmAdmOrg:null, adminResetUser:null, adminResetPassword:'',
+      adminCreditOrg:null, adminCreditAmount:'10', adminCreditReason:'', adminCreditRef:'', adminCreditSuccess:'',
       proxy: location.origin, copyTool:null, snippetTab:'cURL', snippetTabs:['cURL','CLI','Claude Code','Python','Node'], copied:false,
       exPath:'<PATH>', exMethod:'GET',
       tryTool:null, tryMethod:'GET', tryPath:'', tryBody:'', trying:false, tryResp:null, tryStatus:0, tryMs:0,

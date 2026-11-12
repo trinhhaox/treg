@@ -117,6 +117,7 @@ async def admin_orgs(_: str = Depends(require_superadmin), db: AsyncSession = De
     return [
         {
             "id": o.id, "slug": o.slug, "name": o.name, "suspended": o.suspended,
+            "balance_micro": int(o.balance_micro or 0),
             "members": len(mems.get(o.id, [])), "roles": _tally(m.role for m in mems.get(o.id, [])),
             "tools": tool_n.get(o.id, 0), "secrets": secret_n.get(o.id, 0), "bundles": bundle_n.get(o.id, 0),
             "created_at": o.created_at.isoformat(),
@@ -145,6 +146,7 @@ async def admin_org_detail(
     ).scalars().all()
     return {
         "id": org.id, "slug": org.slug, "name": org.name, "suspended": org.suspended,
+        "balance_micro": int(org.balance_micro or 0),
         "members": members,
         "tools": [{"id": t.id, "name": t.name, "host": t.host, "owner": t.owner,
                    "injectors": [b.get("injector") for b in t.bindings]} for t in tools],

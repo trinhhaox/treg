@@ -61,11 +61,24 @@ export default { setup: useDashboard }
 
           <div class="grp" style="margin:0 0 8px">{{t('admin.all_orgs')}}</div>
           <table v-if="adminOrgs && adminOrgs.length">
-            <tr><th>{{t('admin.col_org')}}</th><th>{{t('admin.col_members')}}</th><th>{{t('admin.tools')}}</th><th>{{t('admin.col_status')}}</th><th></th></tr>
+            <tr>
+              <th>{{t('admin.col_org')}}</th>
+              <th>Số dư</th>
+              <th>{{t('admin.col_members')}}</th>
+              <th>{{t('admin.tools')}}</th>
+              <th>{{t('admin.col_status')}}</th>
+              <th></th>
+            </tr>
             <tr v-for="o in adminOrgs" :key="o.id">
-              <td><b>{{o.name}}</b></td><td>{{o.members}}</td><td>{{o.tools}}</td>
+              <td><b>{{o.name}}</b> <span class="muted" style="font-size:11px">#{{o.id}} ({{o.slug}})</span></td>
+              <td style="font-weight:600;font-family:var(--mono);color:var(--accent)">
+                {{money(o.balance_micro || 0)}}
+              </td>
+              <td>{{o.members}}</td>
+              <td>{{o.tools}}</td>
               <td><span class="badge" :class="o.suspended?'invalid':'ok'">{{o.suspended?t('admin.suspended'):t('common.active')}}</span></td>
               <td style="text-align:right;white-space:nowrap">
+                <button class="btn sm primary" @click="admOpenCredit(o)" :disabled="adminBusy" style="margin-right:6px">💰 Nạp tiền</button>
                 <button class="btn sm" @click="admSuspendOrg(o)" :disabled="adminBusy">{{o.suspended?t('admin.unsuspend'):t('admin.suspend')}}</button>
                 <button class="btn sm" :class="{danger:confirmAdmOrg===o.id}" @click="admDeleteOrg(o)" style="margin-left:6px">{{confirmAdmOrg===o.id?t('admin.confirm'):t('common.delete')}}</button>
               </td>
@@ -98,6 +111,41 @@ export default { setup: useDashboard }
             </tr>
           </table>
           <p v-else class="sub" style="margin:0 0 16px">{{adminBusy ? 'Đang tải danh sách người dùng...' : 'Chưa có người dùng nào hoặc đang tải...'}}</p>
+
+          <!-- Modal Superadmin Nạp tiền thủ công cho Tổ chức -->
+          <div v-if="adminCreditOrg" class="scrim" role="dialog" aria-modal="true" @click.self="admCloseCredit">
+            <div class="box" style="max-width:440px;padding:24px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="margin:0">Nạp tiền cho tổ chức</h3>
+                <button class="btn sm ico" @click="admCloseCredit">✕</button>
+              </div>
+              <p class="sub" style="margin:0 0 14px">
+                Tổ chức: <b>{{adminCreditOrg.name}}</b> (Số dư hiện tại: <b style="color:var(--accent)">{{money(adminCreditOrg.balance_micro || 0)}}</b>)
+              </p>
+
+              <div v-if="err" class="banner" style="margin-bottom:12px;background:#ffefef;color:#b00020;padding:8px 12px;border-radius:6px;font-size:13px">{{err}}</div>
+              <div v-if="adminCreditSuccess" class="banner" style="margin-bottom:12px;background:#ecfdf5;color:#047857;padding:8px 12px;border-radius:6px;font-size:13px">{{adminCreditSuccess}}</div>
+
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Chọn hoặc nhập số tiền nạp (USD)</label>
+              <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+                <button v-for="amt in ['5', '10', '25', '50', '100', '200']" :key="amt" type="button" class="btn sm" :class="{primary: adminCreditAmount===amt}" @click="adminCreditAmount=amt">${{amt}}</button>
+              </div>
+              <input type="number" step="0.5" min="0.1" v-model="adminCreditAmount" placeholder="Nhập số tiền USD..." style="width:100%;box-sizing:border-box;margin-bottom:14px;padding:8px 12px" autofocus />
+
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Lý do nạp tiền</label>
+              <input type="text" v-model="adminCreditReason" placeholder="Lý do nạp tiền..." style="width:100%;box-sizing:border-box;margin-bottom:14px;padding:8px 12px" />
+
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Mã đối chiếu giao dịch (Ref)</label>
+              <input type="text" v-model="adminCreditRef" placeholder="Mã tham chiếu giao dịch..." style="width:100%;box-sizing:border-box;margin-bottom:16px;padding:8px 12px;font-family:var(--mono);font-size:11px" />
+
+              <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button class="btn sm" @click="admCloseCredit">{{t('common.cancel') || 'Hủy'}}</button>
+                <button class="btn sm primary" :disabled="adminBusy || !adminCreditAmount || parseFloat(adminCreditAmount) <= 0" @click="admSubmitCredit">
+                  {{adminBusy ? 'Đang nạp...' : 'Xác nhận nạp tiền'}}
+                </button>
+              </div>
+            </div>
+          </div>
 
           <!-- Modal Superadmin Đặt lại mật khẩu cho thành viên -->
           <div v-if="adminResetUser" class="scrim" role="dialog" aria-modal="true" @click.self="admCloseReset">

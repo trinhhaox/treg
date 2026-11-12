@@ -44,7 +44,7 @@ export default {
           <div class="tut-head">
             <Avatar v-if="activeOrg && activeOrg.avatar_url" :src="activeOrg.avatar_url" :name="activeName" :size="40" />
             <div><h1>{{t('team.title', {name: activeName})}}<span v-if="isPersonal(activeOrg)" class="chip" style="margin-left:8px;vertical-align:middle">{{t('common.personal')}}</span></h1>
-              <p class="sub" style="margin:0">{{t('team.role_desc', {role: activeRole})}} <span class="muted">Switch, create or join a team from the picker at the top of the page.</span></p>
+              <p class="sub" style="margin:0">{{t('team.role_desc', {role: activeRole})}} <span class="muted">Chuyển đổi, tạo mới hoặc tham gia đội ngũ từ menu ở đầu trang.</span></p>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
                 <button class="btn sm primary" @click="agentConnectDialog=true">{{t('mcp.nav_btn')}}</button>
                 <button v-if="activeRole!=='owner' && memberSsoReady" class="btn sm" @click="copyMemberSsoLink">Copy company sign-in link</button>
@@ -325,17 +325,22 @@ export default {
                 <div class="card" style="padding:16px">
                   <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
                     <div style="flex:1;min-width:220px">
-                      <div class="lbl">Balance</div>
+                      <div class="lbl">{{t('nav.balance') || 'Số dư'}}</div>
                       <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:var(--mono)">{{money(billing.balance_micro)}}</div>
                     </div>
                     <!-- Stripe's hosted portal: card, billing address, tax ID and the invoice archive.
                          Hidden until the team has a Stripe customer, which its first payment creates. -->
                     <button v-if="billing.portal" class="btn sm" :disabled="billingBusy" @click="openPortal()"
-                            title="Update your card, billing address and tax ID, and download past invoices">
-                      {{billingBusy?'Opening…':'Manage billing'}}
+                            title="Cập nhật thẻ, địa chỉ thanh toán, mã số thuế và tải hóa đơn">
+                      {{billingBusy?'Đang mở…':'Quản lý thanh toán'}}
                     </button>
                   </div>
-                  <p v-if="!billing.configured" class="sub" style="margin:12px 0 0">Top-ups aren't configured on this deployment.</p>
+                  <p v-if="!billing.configured" class="sub" style="margin:12px 0 0">
+                    Tính năng nạp tiền tự động qua thẻ (Stripe) chưa được cấu hình trên máy chủ này.
+                    <template v-if="isAdmin">
+                      <br><span style="color:var(--accent);font-weight:600">Là Quản trị viên tối cao (SuperAdmin)?</span> <a href="#admin" @click.prevent="go('admin')">Nạp tiền thủ công cho tổ chức tại Trang Quản Trị →</a>
+                    </template>
+                  </p>
 
                   <template v-if="billing.configured">
                     <div style="margin-top:12px">
@@ -350,143 +355,137 @@ export default {
                              the full address would be published to every stranger who signs up
                              through an influencer's link. The domain is what a real friend
                              recognises. Falls back to "to treg" if we somehow have no address. -->
-                        You were invited
-                        <template v-if="billing.referral_offer.referrer_masked">by
+                        Bạn được mời
+                        <template v-if="billing.referral_offer.referrer_masked">bởi
                           <b>{{billing.referral_offer.referrer_masked}}</b></template>
-                        <template v-else>to treg</template>
-                        — add
-                        <!-- Once they have paid something, ask for the REMAINDER. Repeating the
-                             full amount reads as though the money they already added did not
-                             count, and it does: the threshold is cumulative. -->
+                        <template v-else>tham gia treg</template>
+                        — nạp
                         <b>{{money(billing.referral_offer.remaining_micro)}}</b>
-                        <template v-if="billing.referral_offer.topped_up_micro"> more</template>
-                        <template v-else> or more</template>
-                        <!-- "straight away" is load-bearing. The referee has no Referrals page, so
-                             the balance is their ONLY feedback; promising a bonus without saying
-                             when is what made a correct payout look like a failure. -->
-                        and we'll add <b>{{money(billing.referral_offer.referred_micro)}}</b> to your
-                        balance <b>straight away</b>. They get
-                        {{money(billing.referral_offer.referrer_micro)}} after
-                        {{billing.referral_offer.hold_days}} days.
+                        <template v-if="billing.referral_offer.topped_up_micro"> nữa</template>
+                        <template v-else> trở lên</template>
+                        và chúng tôi sẽ cộng ngay <b>{{money(billing.referral_offer.referred_micro)}}</b> vào
+                        số dư của bạn <b>ngay lập tức</b>. Người giới thiệu nhận được
+                        {{money(billing.referral_offer.referrer_micro)}} sau
+                        {{billing.referral_offer.hold_days}} ngày.
                       </div>
                       <!-- The amounts live in a modal (openTopup), not inline: choosing a size,
                            seeing the bonus it earns and deciding on auto top-up are one decision,
                            and the mandate text has to sit next to the Pay button it authorizes. -->
-                      <button class="btn primary" :disabled="billingBusy" @click="openTopup()">Top up</button>
+                      <button class="btn primary" :disabled="billingBusy" @click="openTopup()">Nạp tiền</button>
                     </div>
 
                     <!-- `no_card` is not a failure: consent was recorded (usually from the top-up
                          modal) and the policy arms itself when a payment saves a card. Showing it in
                          the red "switched itself off" banner made an abandoned Checkout look broken. -->
                     <p v-if="billing.autotopup.disabled_reason==='no_card'" class="sub" style="margin:14px 0 0">
-                      Auto top-up is set up and will switch on as soon as a top-up saves a card. Until then, calls stop when the balance runs out.
+                      Tự động nạp tiền đã được thiết lập và sẽ kích hoạt ngay khi bạn nạp tiền và lưu thẻ. Cho đến lúc đó, các lệnh gọi sẽ tạm dừng khi hết số dư.
                     </p>
                     <p v-else-if="billing.autotopup.disabled_reason==='payment_refunded'" class="sub" style="margin:14px 0 0">
-                      Auto top-up is off because a top-up was refunded and its unspent credit removed. Switch it back on below when you want refills to resume.
+                      Tự động nạp tiền đang tắt do khoản nạp trước đó đã hoàn tiền. Bật lại bên dưới khi bạn muốn tiếp tục nạp tự động.
                     </p>
                     <div v-else-if="billing.autotopup.disabled_reason" class="banner"
                          :class="{'auth-warning':billing.autotopup.disabled_reason==='authentication_required'}"
                          style="margin:14px 0 0">
                       <template v-if="billing.autotopup.disabled_reason==='stripe_unconfirmed'">
-                        Auto top-up paused because we could not confirm a Stripe payment. Calls may stop when the balance runs out. Check billing history and contact support before turning it back on.
+                        Tự động nạp tiền tạm dừng vì không thể xác nhận thanh toán Stripe. Lệnh gọi có thể dừng khi hết số dư. Vui lòng kiểm tra lịch sử thanh toán hoặc liên hệ hỗ trợ.
                       </template>
                       <template v-else-if="billing.autotopup.disabled_reason==='authentication_required'">
-                        Your bank needs you to verify a payment. We cancelled the attempted auto top-up. Make a manual top-up to verify with your bank; auto top-up will turn back on after it succeeds.
-                        <button class="btn primary" style="margin-left:10px" :disabled="billingBusy" @click="openTopup()">Make a manual top-up</button>
+                        Ngân hàng yêu cầu bạn xác thực thanh toán. Đã hủy lệnh tự động nạp này. Hãy nạp tiền thủ công để xác thực với ngân hàng; tự động nạp sẽ kích hoạt lại sau khi thành công.
+                        <button class="btn primary" style="margin-left:10px" :disabled="billingBusy" @click="openTopup()">Nạp tiền thủ công</button>
                       </template>
                       <template v-else>
-                        Auto top-up switched itself off ({{billing.autotopup.disabled_reason}}). Once the balance runs out, calls will fail until it's funded.
+                        Tự động nạp tiền đã tắt ({{billing.autotopup.disabled_reason}}). Khi hết số dư, các lượt gọi công cụ sẽ dừng cho đến khi được nạp thêm.
                       </template>
                     </div>
                     <div v-else-if="billing.autotopup.enabled&&billing.autotopup.cap_reached" class="banner" style="margin:14px 0 0">
-                      The next auto top-up would pass this month's {{money(billing.autotopup.monthly_cap_micro)}} limit, so none runs until the 1st (UTC). Until then, calls stop when the balance runs out.
-                      <button class="btn primary" style="margin-left:10px" :disabled="billingBusy" @click="openTopup()">Make a manual top-up</button>
+                      Lượt nạp tự động tiếp theo sẽ vượt hạn mức tháng {{money(billing.autotopup.monthly_cap_micro)}}, vì vậy hệ thống dừng nạp cho đến ngày 1 tháng sau (UTC).
+                      <button class="btn primary" style="margin-left:10px" :disabled="billingBusy" @click="openTopup()">Nạp tiền thủ công</button>
                     </div>
                     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
                       <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
                         <span class="tswitch"><input type="checkbox" :checked="billing.autotopup.enabled||autoOpen" :disabled="billingBusy" @change="autoToggled"/><span class="knob"></span></span>
-                        <span class="lbl" style="margin:0">Auto top-up</span>
+                        <span class="lbl" style="margin:0">Tự động nạp tiền</span>
                         <span v-if="billing.card_on_file" class="sub saved-card-label">
                           <svg class="saved-card-check" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                          <span>Card saved with</span>
+                          <span>Thẻ đã lưu với</span>
                           <img class="stripe-wordmark stripe-wordmark-slate" :src="stripeSlate" alt="Stripe">
                           <img class="stripe-wordmark stripe-wordmark-white" :src="stripeWhite" alt="Stripe">
                         </span>
                       </label>
                       <p class="sub" style="margin:8px 0 0">
-                        <template v-if="billing.autotopup.enabled">On - we add {{money(billing.autotopup.amount_micro)}}<span v-if="tierBonus(billing.autotopup.amount_micro/1e6)" style="color:var(--green)"> + {{money(tierBonus(billing.autotopup.amount_micro/1e6))}} bonus</span> whenever the balance drops below {{money(billing.autotopup.threshold_micro)}}, up to {{billing.autotopup.per_hour}} times per hour. This month: {{money(billing.autotopup.month_spend_micro)}} of the {{money(billing.autotopup.monthly_cap_micro)}} monthly limit.
-                          <a href="#" @click.prevent="autoOpen=!autoOpen;autoConsent=false">{{autoOpen?'Cancel':'Edit'}}</a></template>
-                        <template v-else>Keep agents running without watching the balance. We charge your saved card only when it dips below your threshold.<template v-if="maxBonusPct"> Bigger refills earn bonus credit, up to +{{maxBonusPct}}% on every refill.</template></template>
+                        <template v-if="billing.autotopup.enabled">Đang bật - tự động nạp {{money(billing.autotopup.amount_micro)}}<span v-if="tierBonus(billing.autotopup.amount_micro/1e6)" style="color:var(--green)"> + {{money(tierBonus(billing.autotopup.amount_micro/1e6))}} thưởng</span> mỗi khi số dư giảm xuống dưới {{money(billing.autotopup.threshold_micro)}}, tối đa {{billing.autotopup.per_hour}} lần mỗi giờ. Tháng này: {{money(billing.autotopup.month_spend_micro)}} trên hạn mức tháng {{money(billing.autotopup.monthly_cap_micro)}}.
+                          <a href="#" @click.prevent="autoOpen=!autoOpen;autoConsent=false">{{autoOpen?'Hủy':'Chỉnh sửa'}}</a></template>
+                        <template v-else>Duy trì hoạt động liên tục cho agent mà không cần theo dõi số dư. Chúng tôi chỉ trừ tiền thẻ đã lưu khi số dư giảm xuống dưới ngưỡng cài đặt.<template v-if="maxBonusPct"> Mức nạp lớn hơn nhận thêm tín dụng thưởng, lên tới +{{maxBonusPct}}% cho mỗi lần nạp.</template></template>
                       </p>
                       <p v-if="billing.autotopup.enabled&&!autoOpen&&nextBonusTier(billing.autotopup.amount_micro/1e6)" class="sub" style="margin:4px 0 0">
-                        Refill <b>${{nextBonusTier(billing.autotopup.amount_micro/1e6).usd}}</b> or more to earn <span style="color:var(--green)">+{{nextBonusTier(billing.autotopup.amount_micro/1e6).pct}}% bonus</span> on every refill.
-                        <a href="#" @click.prevent="autoOpen=true;autoConsent=false">Change amount</a>
+                        Nạp từ <b>${{nextBonusTier(billing.autotopup.amount_micro/1e6).usd}}</b> trở lên để nhận thêm <span style="color:var(--green)">+{{nextBonusTier(billing.autotopup.amount_micro/1e6).pct}}% thưởng</span> mỗi lần nạp.
+                        <a href="#" @click.prevent="autoOpen=true;autoConsent=false">Đổi số tiền</a>
                       </p>
                       <!-- The same panel edits a running policy (Edit link above) and arms a new one:
                            either way the numbers change, so the mandate is re-agreed and re-stamped. -->
                       <div v-if="autoOpen" style="margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--rb);padding:12px 14px;max-width:560px">
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                          <span class="sub" style="margin:0">Add $</span>
+                          <span class="sub" style="margin:0">Nạp $</span>
                           <input class="msel" style="width:70px" type="number" min="5" v-model.number="autoAmount"/>
-                          <span class="sub" style="margin:0">when the balance drops below $</span>
+                          <span class="sub" style="margin:0">khi số dư giảm xuống dưới $</span>
                           <input class="msel" style="width:70px" type="number" min="5" v-model.number="autoThreshold"/>
-                          <span class="sub" style="margin:0">, up to</span>
+                          <span class="sub" style="margin:0">, tối đa</span>
                           <input class="msel" style="width:56px" type="number" min="1" max="60" v-model.number="autoPerHour"/>
-                          <span class="sub" style="margin:0">times per hour</span>
+                          <span class="sub" style="margin:0">lần mỗi giờ</span>
                         </div>
                         <p class="sub" style="margin:8px 0 0">
-                          <template v-if="tierBonus(autoAmount)">Each refill adds <b>{{money(autoAmount*1e6+tierBonus(autoAmount))}}</b> ({{money(autoAmount*1e6)}} + <span style="color:var(--green)">{{money(tierBonus(autoAmount))}} bonus</span>).</template>
-                          <template v-if="nextBonusTier(autoAmount)"> Refill <a href="#" @click.prevent="autoAmount=nextBonusTier(autoAmount).usd;autoConsent=false">${{nextBonusTier(autoAmount).usd}}</a> or more for <span style="color:var(--green)">+{{nextBonusTier(autoAmount).pct}}% bonus</span> on every refill.</template>
+                          <template v-if="tierBonus(autoAmount)">Mỗi lần nạp cộng <b>{{money(autoAmount*1e6+tierBonus(autoAmount))}}</b> ({{money(autoAmount*1e6)}} + <span style="color:var(--green)">{{money(tierBonus(autoAmount))}} thưởng</span>).</template>
+                          <template v-if="nextBonusTier(autoAmount)"> Nạp <a href="#" @click.prevent="autoAmount=nextBonusTier(autoAmount).usd;autoConsent=false">${{nextBonusTier(autoAmount).usd}}</a> trở lên để nhận <span style="color:var(--green)">+{{nextBonusTier(autoAmount).pct}}% thưởng</span> mỗi lần nạp.</template>
                         </p>
                         <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;cursor:pointer">
                           <input type="checkbox" v-model="autoConsent" style="margin-top:3px"/>
                           <!-- The mandate text. Not decoration: an off-session charge with no recorded
                                agreement to THESE numbers is an unauthorized charge under PSD2/SCA. -->
-                          <span class="sub" style="margin:0">I authorize treg to charge my saved card ${{autoAmount}} automatically whenever my balance drops below ${{autoThreshold}}, up to {{autoPerHour}} times per hour. Cancel any time.</span>
+                          <span class="sub" style="margin:0">Tôi ủy quyền cho treg tự động trừ ${{autoAmount}} từ thẻ đã lưu mỗi khi số dư giảm xuống dưới ${{autoThreshold}}, tối đa {{autoPerHour}} lần mỗi giờ. Có thể hủy bất kỳ lúc nào.</span>
                         </label>
                         <div style="margin-top:12px">
-                          <button class="btn primary" :disabled="!autoConsent||billingBusy" @click="setAuto(true)">{{billingBusy?'…':(billing.autotopup.enabled?'Save':'Turn on auto top-up')}}</button>
+                          <button class="btn primary" :disabled="!autoConsent||billingBusy" @click="setAuto(true)">{{billingBusy?'…':(billing.autotopup.enabled?'Lưu thay đổi':'Bật tự động nạp tiền')}}</button>
                         </div>
                       </div>
                     </div>
 
                     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
-                      <div class="lbl">Payment history</div>
-                      <p class="sub" style="margin:8px 0 0">Top-ups add to your tool balance. SSO subscriptions are billed separately.</p>
-                      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px" role="group" aria-label="Filter payments">
-                        <button v-for="filter in [{id:'all',label:'All'},{id:'manual',label:'Manual top-ups'},{id:'auto',label:'Auto top-ups'},{id:'subscription',label:'Subscriptions'}]"
+                      <div class="lbl">Lịch sử thanh toán</div>
+                      <p class="sub" style="margin:8px 0 0">Các lượt nạp tiền sẽ cộng vào số dư công cụ. Gói đăng ký SSO được tính phí riêng.</p>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px" role="group" aria-label="Lọc giao dịch thanh toán">
+                        <button v-for="filter in [{id:'all',label:'Tất cả'},{id:'manual',label:'Nạp thủ công'},{id:'auto',label:'Tự động nạp'},{id:'subscription',label:'Gói đăng ký'}]"
                                 :key="filter.id" class="btn sm" :class="{primary:bhistFilter===filter.id}"
                                 :aria-pressed="bhistFilter===filter.id" @click="setBillingHistoryFilter(filter.id)">{{filter.label}}</button>
                       </div>
-                      <p v-if="bhist.loading" class="sub" style="margin:8px 0 0">Loading…</p>
-                      <p v-else-if="bhist.error" class="sub" style="margin:8px 0 0">Could not load payment history. <button class="btn sm" @click="loadBillingHistory()">Try again</button></p>
-                      <p v-else-if="!bhist.items.length" class="sub" style="margin:8px 0 0">No payments in this category yet.</p>
+                      <p v-if="bhist.loading" class="sub" style="margin:8px 0 0">Đang tải…</p>
+                      <p v-else-if="bhist.error" class="sub" style="margin:8px 0 0">Không thể tải lịch sử thanh toán. <button class="btn sm" @click="loadBillingHistory()">Thử lại</button></p>
+                      <p v-else-if="!bhist.items.length" class="sub" style="margin:8px 0 0">Chưa có giao dịch thanh toán nào trong mục này.</p>
                       <template v-else>
                         <!-- Top-up amounts come from our ledger; subscription invoices come from Stripe. -->
                         <div style="overflow-x:auto">
                         <table style="width:100%;min-width:440px;max-width:700px;margin-top:8px;border-collapse:collapse">
                           <thead><tr class="sub" style="text-align:left">
-                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Date</th>
-                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Amount</th>
-                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Payment</th>
-                            <th scope="col" style="padding:8px 0;text-align:right;font-weight:500">Documents</th>
+                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Ngày</th>
+                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Số tiền</th>
+                            <th scope="col" style="padding:8px 10px 8px 0;font-weight:500">Giao dịch</th>
+                            <th scope="col" style="padding:8px 0;text-align:right;font-weight:500">Chứng từ</th>
                           </tr></thead>
                           <tbody>
                           <tr v-for="i in bhist.items" :key="i.id" style="border-top:1px solid var(--line)">
                             <td style="padding:8px 10px 8px 0;white-space:nowrap">{{bhistDate(i.created_at)}}</td>
                             <td style="padding:8px 10px 8px 0;font-family:var(--mono);white-space:nowrap">{{money(i.amount_micro)}}</td>
                             <td style="padding:8px 10px 8px 0;white-space:nowrap" class="sub">
-                              {{i.kind==='subscription'?'SSO subscription':i.kind==='auto'?'Auto top-up':'Manual top-up'}} ·
-                              <span v-if="i.refunded_micro&&i.refunded_micro>=i.amount_micro">Refunded</span>
-                              <span v-else :style="i.status==='paid'?'color:var(--green)':''">{{i.status==='paid'?'Paid':i.status==='open'?'Payment due':i.status||'Pending'}}</span>
+                              {{i.kind==='subscription'?'Gói SSO':i.kind==='auto'?'Tự động nạp':'Nạp thủ công'}} ·
+                              <span v-if="i.refunded_micro&&i.refunded_micro>=i.amount_micro">Đã hoàn tiền</span>
+                              <span v-else :style="i.status==='paid'?'color:var(--green)':''">{{i.status==='paid'?'Đã thanh toán':i.status==='open'?'Chờ thanh toán':i.status||'Đang xử lý'}}</span>
                               <span v-if="i.kind==='subscription'&&i.number" class="muted"> · {{i.number}}</span>
-                              <span v-if="i.bonus_micro&&!(i.refunded_micro>=i.amount_micro)" style="color:var(--green)"> +{{money(i.bonus_micro)}} bonus</span>
-                              <span v-if="i.refunded_micro&&i.refunded_micro<i.amount_micro"> · Refunded {{money(i.refunded_micro)}}</span>
+                              <span v-if="i.bonus_micro&&!(i.refunded_micro>=i.amount_micro)" style="color:var(--green)"> +{{money(i.bonus_micro)}} thưởng</span>
+                              <span v-if="i.refunded_micro&&i.refunded_micro<i.amount_micro"> · Đã hoàn {{money(i.refunded_micro)}}</span>
                             </td>
                             <td style="padding:8px 0;text-align:right;white-space:nowrap">
-                              <a v-if="i.invoice_pdf||i.hosted_invoice_url" :href="i.invoice_pdf||i.hosted_invoice_url" target="_blank" rel="noopener">Invoice</a>
+                              <a v-if="i.invoice_pdf||i.hosted_invoice_url" :href="i.invoice_pdf||i.hosted_invoice_url" target="_blank" rel="noopener">Hóa đơn</a>
                               <span v-if="(i.invoice_pdf||i.hosted_invoice_url)&&i.receipt_url" class="muted"> · </span>
-                              <a v-if="i.receipt_url" :href="i.receipt_url" target="_blank" rel="noopener">Receipt</a>
+                              <a v-if="i.receipt_url" :href="i.receipt_url" target="_blank" rel="noopener">Biên lai</a>
                               <span v-if="!(i.invoice_pdf||i.hosted_invoice_url||i.receipt_url)" class="muted">—</span>
                             </td>
                           </tr>
@@ -494,12 +493,12 @@ export default {
                         </table>
                         </div>
                       </template>
-                      <p v-if="!bhist.ok && bhist.items.length" class="sub" style="margin:8px 0 0">Some top-up document links are temporarily unavailable; the top-up amounts are correct. Try again or use <b>Manage billing</b>.</p>
-                      <p v-if="!bhist.invoicesOk" class="sub" style="margin:8px 0 0">Subscription invoices are temporarily unavailable. <button class="btn sm" @click="loadBillingHistory()">Try again</button></p>
+                      <p v-if="!bhist.ok && bhist.items.length" class="sub" style="margin:8px 0 0">Một số liên kết chứng từ nạp tiền tạm thời không khả dụng; số tiền nạp vẫn chính xác. Vui lòng thử lại hoặc dùng <b>Quản lý thanh toán</b>.</p>
+                      <p v-if="!bhist.invoicesOk" class="sub" style="margin:8px 0 0">Hóa đơn gói đăng ký tạm thời không khả dụng. <button class="btn sm" @click="loadBillingHistory()">Thử lại</button></p>
                       <div v-if="!bhist.error && (bhistPage>0 || bhist.nextCursor)" style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:14px">
-                        <button class="btn sm" :disabled="bhistPage===0||bhist.loading" @click="previousBillingHistoryPage()">Previous</button>
-                        <span class="sub" style="margin:0">Page {{bhistPage+1}}</span>
-                        <button class="btn sm" :disabled="!bhist.nextCursor||bhist.loading" @click="nextBillingHistoryPage()">Next</button>
+                        <button class="btn sm" :disabled="bhistPage===0||bhist.loading" @click="previousBillingHistoryPage()">Trước</button>
+                        <span class="sub" style="margin:0">Trang {{bhistPage+1}}</span>
+                        <button class="btn sm" :disabled="!bhist.nextCursor||bhist.loading" @click="nextBillingHistoryPage()">Tiếp</button>
                       </div>
                     </div>
                   </template>

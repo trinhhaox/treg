@@ -54,5 +54,59 @@ async admSubmitReset(){
   const uid=this.adminResetUser.id;
   await this._adm('/admin/users/'+uid+'/password','POST',{password:p});
   this.admCloseReset();
+},
+admOpenCredit(o){
+  this.adminCreditOrg = o;
+  this.adminCreditAmount = '10';
+  this.adminCreditReason = 'Nạp tiền thủ công từ SuperAdmin';
+  this.adminCreditRef = 'adm-topup-' + o.id + '-' + Date.now();
+  this.adminCreditSuccess = '';
+  this.err = '';
+},
+admCloseCredit(){
+  this.adminCreditOrg = null;
+  this.adminCreditAmount = '10';
+  this.adminCreditReason = '';
+  this.adminCreditRef = '';
+  this.adminCreditSuccess = '';
+},
+async admSubmitCredit(){
+  if(!this.adminCreditOrg) return;
+  const amt = parseFloat(this.adminCreditAmount);
+  if(isNaN(amt) || amt <= 0){
+    this.err = 'Vui lòng nhập số tiền hợp lệ lớn hơn 0.';
+    return;
+  }
+  const ref = (this.adminCreditRef || '').trim() || ('adm-topup-' + this.adminCreditOrg.id + '-' + Date.now());
+  const reason = (this.adminCreditReason || '').trim() || 'Nạp tiền thủ công từ SuperAdmin';
+  this.adminBusy = true;
+  this.err = '';
+  this.adminCreditSuccess = '';
+  try{
+    const res = await this.api('/admin/orgs/' + this.adminCreditOrg.id + '/credit', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({ amount_usd: amt, ref, reason })
+    });
+    const newBal = (res.balance_usd != null) ? ('$' + Number(res.balance_usd).toFixed(2)) : this.money(res.balance_micro);
+    this.adminCreditSuccess = 'Đã nạp thành công $' + amt.toFixed(2) + ' cho tổ chức ' + this.adminCreditOrg.name + ' (Số dư mới: ' + newBal + ')';
+    if(this.adminOrgs){
+      const target = this.adminOrgs.find(x => x.id === this.adminCreditOrg.id);
+      if(target && res.balance_micro != null) target.balance_micro = res.balance_micro;
+    }
+    if(this.billing && this.activeOrgId === this.adminCreditOrg.id && res.balance_micro != null){
+      this.billing.balance_micro = res.balance_micro;
+    }
+    setTimeout(() => {
+      if(this.adminCreditSuccess){
+        this.admCloseCredit();
+        this.loadAdmin();
+      }
+    }, 1500);
+  }catch(e){
+    this.err = 'Lỗi nạp tiền: ' + (e.detail || e.status || e.message);
+  }finally{
+    this.adminBusy = false;
+  }
 }
 }
