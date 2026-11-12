@@ -3291,7 +3291,7 @@ async def landing(request: Request, treg_session: str = Cookie(default=""),
         html = _fill_headline(page.read_text(encoding="utf-8")).replace(
             "{BASE}", get_settings().public_url.rstrip("/"))
         html = html.replace("{SIGNED_IN}", "true" if signed_in else "false")
-        html = html.replace("{START_LABEL}", "Open dashboard" if signed_in else "Start free")
+        html = html.replace("{START_LABEL}", "Mở bảng điều khiển" if signed_in else "Bắt đầu miễn phí")
         if signed_in:
             html = re.sub(r"<!--signed-out-->.*?<!--/signed-out-->", "", html, flags=re.S)
         # The footer's hub links point at hosted-only pages; a self-hosted landing drops them.
