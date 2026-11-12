@@ -20,13 +20,13 @@ const FEED = [
   { key: 'cost', header: 'Cost', align: 'right' },
 ]
 const num = (key, header) => ({ key, header, align: 'right' })
-const BY_MEMBER = [{ key: 'member', header: 'Member', mobile: 'primary' }, num('call', 'API'), num('local_run', 'Local'), num('server_run', 'Server'), num('total', 'Total')]
-const BY_TOOL = [{ key: 'name', header: 'Tool', mobile: 'primary' }, num('total', 'Events')]
-const BY_DAY = [{ key: 'day', header: 'Day', mobile: 'primary' }, num('total', 'Events')]
-const BY_TAG = [{ key: 'value', header: 'Value', mobile: 'primary' }, num('calls', 'Calls'), num('spend', 'Spend')]
-const BY_SERIES = [{ key: 'name', header: 'Name', mobile: 'primary' }, { key: 'share', header: 'Share', width: '22%' }, num('spend', 'Spend')]
-const GROUPS = [{ value: 'day', label: 'By day' }, { value: 'week', label: 'By week' }, { value: 'month', label: 'By month' }]
-const STACKS = [{ value: 'key', label: 'API keys' }, { value: 'tool', label: 'Tools' }]
+const BY_MEMBER = [{ key: 'member', header: 'Thành viên', mobile: 'primary' }, num('call', 'Gọi API'), num('local_run', 'Cục bộ'), num('server_run', 'Máy chủ'), num('total', 'Tổng')]
+const BY_TOOL = [{ key: 'name', header: 'Công cụ', mobile: 'primary' }, num('total', 'Sự kiện')]
+const BY_DAY = [{ key: 'day', header: 'Ngày', mobile: 'primary' }, num('total', 'Sự kiện')]
+const BY_TAG = [{ key: 'value', header: 'Giá trị', mobile: 'primary' }, num('calls', 'Lượt gọi'), num('spend', 'Chi phí')]
+const BY_SERIES = [{ key: 'name', header: 'Tên', mobile: 'primary' }, { key: 'share', header: 'Tỷ trọng', width: '22%' }, num('spend', 'Chi phí')]
+const GROUPS = [{ value: 'day', label: 'Theo ngày' }, { value: 'week', label: 'Theo tuần' }, { value: 'month', label: 'Theo tháng' }]
+const STACKS = [{ value: 'key', label: 'Khóa API' }, { value: 'tool', label: 'Công cụ' }]
 const PAGE = 10
 const dayLabel = (iso, opts) => new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC', ...opts })
 
@@ -47,18 +47,18 @@ export default {
     // The filter lists keep the current choice even when the new range has no spend for it.
     daysNewestFirst() { return [...(this.usage?.by_day || [])].reverse() },
     activityKeyOptions() {
-      return [{ value: '', label: 'All API keys' }, ...this.apiKeys.map(k => ({ value: String(k.id), label: this.keyLabel(k) }))]
+      return [{ value: '', label: 'Tất cả khóa API' }, ...this.apiKeys.map(k => ({ value: String(k.id), label: this.keyLabel(k) }))]
     },
     spendKeyOptions() {
-      return [{ value: '', label: 'All API keys' }, ...(this.usageSpend?.options?.keys || []).map(k => ({ value: String(k.id), label: k.name }))]
+      return [{ value: '', label: 'Tất cả khóa API' }, ...(this.usageSpend?.options?.keys || []).map(k => ({ value: String(k.id), label: k.name }))]
     },
     spendProviderOptions() {
-      return [{ value: '', label: 'All providers' }, ...(this.usageSpend?.options?.providers || []).map(p => ({ value: p.id, label: p.name || p.id }))]
+      return [{ value: '', label: 'Tất cả nhà cung cấp' }, ...(this.usageSpend?.options?.providers || []).map(p => ({ value: p.id, label: p.name || p.id }))]
     },
     spendSeries() {
-      const noun = this.usageSpend?.stack === 'tool' ? 'tools' : 'keys'
+      const noun = this.usageSpend?.stack === 'tool' ? 'công cụ' : 'khóa'
       return (this.usageSpend?.series || []).map(s => s.id === 'none' ? { ...s, info: NO_KEY }
-        : s.id === '__other' ? { ...s, name: `Other (${s.members} ${noun})`, folded: this.foldedRanking } : s)
+        : s.id === '__other' ? { ...s, name: `Khác (${s.members} ${noun})`, folded: this.foldedRanking } : s)
     },
     // What the Other slice holds over the whole range: every ranked series without its own color.
     foldedRanking() {
@@ -175,9 +175,9 @@ export default {
     <template #cell-cost="{ row: a }"><span class="act-cost" :title="a.held?'reserved - settles when the task finishes, refunded if it fails':(a.tier==='platform'?'charged to team balance':(a.cost!=null?'estimated - billed to your own provider key':''))">
         <span v-if="a.cached" class="act-cached" title="Served from treg's archive instead of calling the provider.">Cached</span><span v-if="a.held" class="act-dim">hold </span>{{a.cost!=null?money(a.cost):'-'}}</span></template>
   </DataTable>
-  <p v-if="callsLoaded && !activityRows.length" class="pl-empty">No activity yet. Calls your agents make show up here.</p>
-  <p v-else-if="callsLoaded && !activityShown.length" class="pl-empty">{{activityHasOlder?"None of the loaded calls succeeded.":"No successful calls yet."}} <button class="pl-link" @click="actOkOnly=false">Show all {{activityRows.length}}</button></p>
-  <button v-if="callsLoaded && activityHasOlder" class="pl-link pl-more-rows" :disabled="activityOlderBusy" @click="loadOlderActivity">{{activityOlderBusy?'Loading…':'Load older activity'}}</button>
+  <p v-if="callsLoaded && !activityRows.length" class="pl-empty">Chưa có hoạt động nào. Các lượt gọi từ AI Agent sẽ hiển thị tại đây.</p>
+  <p v-else-if="callsLoaded && !activityShown.length" class="pl-empty">{{activityHasOlder ? "Không có lượt gọi thành công nào trong danh sách đã tải." : "Chưa có lượt gọi thành công nào."}} <button class="pl-link" @click="actOkOnly=false">Hiển thị tất cả {{activityRows.length}}</button></p>
+  <button v-if="callsLoaded && activityHasOlder" class="pl-link pl-more-rows" :disabled="activityOlderBusy" @click="loadOlderActivity">{{activityOlderBusy ? 'Đang tải…' : 'Tải thêm hoạt động cũ hơn'}}</button>
   </template>
 
   <template v-if="canAdmin && actTab==='usage'">
@@ -187,54 +187,54 @@ export default {
   <section class="us-card" :aria-busy="usageSpendBusy">
     <header class="us-card-head">
       <div>
-        <h2>Spend</h2>
-        <p class="muted">Billed charges on treg's keys, from the ledger. Days are UTC.<template v-if="historyFrom"> History starts on {{historyFrom}}.</template></p>
+        <h2>Chi tiêu</h2>
+        <p class="muted">Chi phí thực tế từ số dư hệ thống và sổ cái. Giờ tính theo UTC.<template v-if="historyFrom"> Bắt đầu ghi nhận từ {{historyFrom}}.</template></p>
       </div>
       <div v-if="usageSpend && usageSpend.ready" class="us-totals">
-        <div><b><Money :micro="usageSpend.spent_micro" /></b><span>spent</span></div>
-        <div><b>{{usageSpend.charges}}</b><span>{{usageSpend.charges === 1 ? 'charge' : 'charges'}}</span></div>
+        <div><b><Money :micro="usageSpend.spent_micro" /></b><span>đã chi</span></div>
+        <div><b>{{usageSpend.charges}}</b><span>{{usageSpend.charges === 1 ? 'giao dịch' : 'giao dịch'}}</span></div>
       </div>
     </header>
     <div v-if="usageSpend && usageSpend.ready" class="us-filters">
-      <div class="us-filter"><span>Date range</span>
+      <div class="us-filter"><span>Khoảng ngày</span>
         <DateRangePicker :model-value="spendRange" :min="usageSpend.history_from" @change="setSpendRange" /></div>
-      <div class="us-filter"><span>Group by</span>
-        <SelectMenu v-model="spendFilter.group" icon="clock" label="Group by" :options="GROUPS" @change="loadUsageSpend" /></div>
-      <div class="us-filter"><span>API key</span>
-        <SelectMenu v-model="spendFilter.key" icon="key" label="API key" :options="spendKeyOptions" @change="loadUsageSpend" /></div>
-      <div class="us-filter"><span>Provider</span>
-        <SelectMenu v-model="spendFilter.provider" icon="plug" label="Provider" :options="spendProviderOptions" @change="loadUsageSpend" /></div>
+      <div class="us-filter"><span>Nhóm theo</span>
+        <SelectMenu v-model="spendFilter.group" icon="clock" label="Nhóm theo" :options="GROUPS" @change="loadUsageSpend" /></div>
+      <div class="us-filter"><span>Khóa API</span>
+        <SelectMenu v-model="spendFilter.key" icon="key" label="Khóa API" :options="spendKeyOptions" @change="loadUsageSpend" /></div>
+      <div class="us-filter"><span>Nhà cung cấp</span>
+        <SelectMenu v-model="spendFilter.provider" icon="plug" label="Nhà cung cấp" :options="spendProviderOptions" @change="loadUsageSpend" /></div>
       <!-- Stacking by tool only reads within one provider: across all of them it is hundreds of series. -->
-      <div v-if="spendFilter.provider" class="us-filter"><span>Stack by</span>
-        <SelectMenu v-model="spendFilter.stack" icon="layers" label="Stack by" :options="STACKS" @change="loadUsageSpend" /></div>
-      <button v-if="spendFilter.key || spendFilter.provider || spendFilter.group!=='day'" class="pl-link us-clear" @click="clearSpendFilters">Clear filters</button>
+      <div v-if="spendFilter.provider" class="us-filter"><span>Phân loại theo</span>
+        <SelectMenu v-model="spendFilter.stack" icon="layers" label="Phân loại theo" :options="STACKS" @change="loadUsageSpend" /></div>
+      <button v-if="spendFilter.key || spendFilter.provider || spendFilter.group!=='day'" class="pl-link us-clear" @click="clearSpendFilters">Xóa bộ lọc</button>
     </div>
     <div class="us-card-body" :class="{ busy: usageSpendBusy && usageSpend }">
       <p v-if="usageSpendErr" class="pl-empty">{{usageSpendErr}}</p>
-      <p v-else-if="!usageSpend" class="pl-empty">Loading spend…</p>
-      <p v-else-if="!usageSpend.ready" class="pl-empty">Spend history is being prepared. It will appear here within a few days.</p>
-      <p v-else-if="!usageSpend.spent_micro" class="pl-empty">No billed charges in this range.</p>
+      <p v-else-if="!usageSpend" class="pl-empty">Đang tải dữ liệu chi tiêu…</p>
+      <p v-else-if="!usageSpend.ready" class="pl-empty">Lịch sử chi tiêu đang được tổng hợp. Dữ liệu sẽ hiển thị trong thời gian tới.</p>
+      <p v-else-if="!usageSpend.spent_micro" class="pl-empty">Không có giao dịch tính phí nào trong khoảng thời gian này.</p>
       <template v-else>
         <SpendBars :buckets="spendBuckets" :series="spendSeries"
-                   :aria-label="`Billed spend by ${usageSpend.group}: ${moneyGlance(usageSpend.spent_micro)} from ${usageSpend.from} to ${usageSpend.to}`" />
+                   :aria-label="`Chi tiêu theo ${usageSpend.group}: ${moneyGlance(usageSpend.spent_micro)} từ ${usageSpend.from} đến ${usageSpend.to}`" />
         <!-- Every series, none folded: the chart can color seven, a list can name them all. A key's
              row filters the chart to it; the chart answers "when", this list "who". -->
         <button type="button" class="us-rank-toggle" :aria-expanded="spendRankOpen" aria-controls="us-ranking" @click="spendRankOpen=!spendRankOpen">
-          {{usageSpend.stack==='tool' ? 'Spend per tool' : 'Spend per API key'}}
+          {{usageSpend.stack==='tool' ? 'Chi tiêu theo công cụ' : 'Chi tiêu theo khóa API'}}
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>
         </button>
         <div id="us-ranking" class="us-ranking" :class="{ open: spendRankOpen }" :inert="!spendRankOpen"><div class="us-ranking-inner">
           <DataTable :columns="spendColumns" :rows="page(usageSpend.ranking, spendRankPage)" :row-key="r => r.id" surface
                      :interactive="usageSpend.stack==='key'" @row-click="pickRankRow">
-            <template #head-name>{{usageSpend.stack==='tool' ? 'Tool' : 'API key'}}</template>
+            <template #head-name>{{usageSpend.stack==='tool' ? 'Công cụ' : 'Khóa API'}}</template>
             <template #cell-name="{ row: r }"><span class="us-rank-name"><s :style="{ background: rankColor(r) }"></s><span :title="r.name">{{r.name}}</span><InfoTip v-if="r.id==='none'" :title="NO_KEY.title" :text="NO_KEY.text" /></span></template>
             <template #cell-share="{ row: r }"><span class="us-share"><i :style="{ width: share(r) + '%' }"></i></span><span class="muted">{{share(r)}}%</span></template>
             <template #cell-spend="{ row: r }"><b><Money :micro="r.spent_micro" /></b></template>
           </DataTable>
           <div v-if="usageSpend.ranking.length > PAGE" class="us-pager">
             <span class="muted">{{pageLabel(usageSpend.ranking, spendRankPage)}}</span>
-            <button class="btn sm" :disabled="!spendRankPage" @click="spendRankPage--">Previous</button>
-            <button class="btn sm" :disabled="(spendRankPage+1)*PAGE >= usageSpend.ranking.length" @click="spendRankPage++">Next</button>
+            <button class="btn sm" :disabled="!spendRankPage" @click="spendRankPage--">Trước</button>
+            <button class="btn sm" :disabled="(spendRankPage+1)*PAGE >= usageSpend.ranking.length" @click="spendRankPage++">Sau</button>
           </div>
         </div></div>
       </template>
@@ -242,25 +242,25 @@ export default {
   </section>
 
   <div class="cn-filters">
-    <div class="seg pl-seg" role="radiogroup" aria-label="Window">
-      <button v-for="d in [7,30,90]" :key="d" role="radio" :aria-checked="usageDays===d" :class="{on:usageDays===d}" @click="usageDays=d; usageToolPage=0; usageDayPage=0; loadUsageCounts(); loadTagUsage()">{{d}} days</button>
+    <div class="seg pl-seg" role="radiogroup" aria-label="Khung thời gian">
+      <button v-for="d in [7,30,90]" :key="d" role="radio" :aria-checked="usageDays===d" :class="{on:usageDays===d}" @click="usageDays=d; usageToolPage=0; usageDayPage=0; loadUsageCounts(); loadTagUsage()">{{d}} ngày</button>
     </div>
-    <span class="pl-meta pl-push">Counts only. No request or response content is stored.</span>
+    <span class="pl-meta pl-push">Chỉ thống kê số lượt. Không lưu trữ nội dung yêu cầu hay phản hồi.</span>
   </div>
 
   <p v-if="usageErr" class="pl-empty">{{usageErr}}</p>
-  <p v-else-if="!usage" class="pl-empty">Loading counts…</p>
-  <p v-else-if="usage.ready === false" class="pl-empty">Usage counts are being prepared. Check back in a few hours.</p>
+  <p v-else-if="!usage" class="pl-empty">Đang tải thống kê…</p>
+  <p v-else-if="usage.ready === false" class="pl-empty">Dữ liệu sử dụng đang được xử lý. Vui lòng quay lại sau ít giờ.</p>
   <template v-else>
-    <p v-if="usageCountsFrom" class="pl-meta">Counted from {{usageCountsFrom}}, when usage history begins.</p>
+    <p v-if="usageCountsFrom" class="pl-meta">Ghi nhận từ {{usageCountsFrom}}, thời điểm bắt đầu theo dõi lượt dùng.</p>
     <div class="act-stats">
-      <div v-for="[n, l] in [[usage.totals.total, 'Total events'], [usage.totals.call, 'API calls'], [usage.totals.local_run, 'Local runs'], [usage.totals.server_run, 'Server runs']]"
+      <div v-for="[n, l] in [[usage.totals.total, 'Tổng sự kiện'], [usage.totals.call, 'Lượt gọi API'], [usage.totals.local_run, 'Chạy cục bộ'], [usage.totals.server_run, 'Chạy máy chủ']]"
            :key="l" class="pl-card act-stat"><b>{{n}}</b><span>{{l}}</span></div>
     </div>
 
     <section class="pl-sec">
-      <h2 class="pl-h"><span>By member</span><i></i><em>{{usage.by_user.length}}</em></h2>
-      <DataTable :columns="memberColumns" :rows="usage.by_user" :row-key="u => u.user_email" surface empty="No usage in this window.">
+      <h2 class="pl-h"><span>Theo thành viên</span><i></i><em>{{usage.by_user.length}}</em></h2>
+      <DataTable :columns="memberColumns" :rows="usage.by_user" :row-key="u => u.user_email" surface empty="Không có lượt dùng nào trong khoảng thời gian này.">
         <template #cell-member="{ row: u }">{{short(u.user_email)}}</template>
         <template #cell-total="{ row: u }"><b>{{u.total}}</b></template>
       </DataTable>
@@ -269,23 +269,23 @@ export default {
     <div class="act-pair">
       <!-- Ten rows at a time, paged here: one request already holds every row, so Next is free. -->
       <section v-if="usage.by_tool.length" class="pl-sec">
-        <h2 class="pl-h"><span>Top tools</span><i></i><em>{{usage.by_tool.length}}</em></h2>
+        <h2 class="pl-h"><span>Công cụ hàng đầu</span><i></i><em>{{usage.by_tool.length}}</em></h2>
         <DataTable :columns="toolColumns" :rows="page(usage.by_tool, usageToolPage)" :row-key="t => t.name" surface />
         <div v-if="usage.by_tool.length > PAGE" class="us-pager">
           <span class="muted">{{pageLabel(usage.by_tool, usageToolPage)}}</span>
-          <button class="btn sm" :disabled="!usageToolPage" @click="usageToolPage--">Previous</button>
-          <button class="btn sm" :disabled="(usageToolPage+1)*PAGE >= usage.by_tool.length" @click="usageToolPage++">Next</button>
+          <button class="btn sm" :disabled="!usageToolPage" @click="usageToolPage--">Trước</button>
+          <button class="btn sm" :disabled="(usageToolPage+1)*PAGE >= usage.by_tool.length" @click="usageToolPage++">Sau</button>
         </div>
       </section>
       <section v-if="usage.by_day.length" class="pl-sec">
-        <h2 class="pl-h"><span>Per day</span><i></i><em>{{usage.by_day.length}}</em></h2>
+        <h2 class="pl-h"><span>Theo từng ngày</span><i></i><em>{{usage.by_day.length}}</em></h2>
         <DataTable :columns="dayColumns" :rows="page(daysNewestFirst, usageDayPage)" :row-key="d => d.day" surface>
           <template #cell-day="{ row: d }"><span class="mono muted">{{d.day}}</span></template>
         </DataTable>
         <div v-if="usage.by_day.length > PAGE" class="us-pager">
           <span class="muted">{{pageLabel(usage.by_day, usageDayPage)}}</span>
-          <button class="btn sm" :disabled="!usageDayPage" @click="usageDayPage--">Newer</button>
-          <button class="btn sm" :disabled="(usageDayPage+1)*PAGE >= usage.by_day.length" @click="usageDayPage++">Older</button>
+          <button class="btn sm" :disabled="!usageDayPage" @click="usageDayPage--">Mới hơn</button>
+          <button class="btn sm" :disabled="(usageDayPage+1)*PAGE >= usage.by_day.length" @click="usageDayPage++">Cũ hơn</button>
         </div>
       </section>
     </div>
@@ -301,18 +301,17 @@ export default {
          invoices from, so it has to be complete. -->
     <template v-for="key in tagKeys" :key="key">
       <section v-if="tagUsage[key]" class="pl-sec">
-        <h2 class="pl-h"><span>Spend by {{key}}</span><i></i><em title="a caller tag from X-Treg-Meta">X-Treg-Meta</em></h2>
-        <p class="cat-hint">What each <b>{{key}}</b> spent, from the ledger. A call is credited in full to every
-          tag it carries, so these sections are different slices of the same money: never add two of them together.</p>
-        <DataTable :columns="tagColumns" :rows="tagRows(key)" :row-key="r => r.value ?? '(untagged)'" surface :empty="'Nothing tagged '+key+' in this window.'">
+        <h2 class="pl-h"><span>Chi tiêu theo {{key}}</span><i></i><em title="Thẻ từ header X-Treg-Meta">X-Treg-Meta</em></h2>
+        <p class="cat-hint">Chi phí thực tế của từng giá trị <b>{{key}}</b> từ sổ cái. Mỗi cuộc gọi được ghi nhận đầy đủ cho mọi thẻ mang theo, vì vậy đây là các góc nhìn khác nhau của cùng một nguồn tiền.</p>
+        <DataTable :columns="tagColumns" :rows="tagRows(key)" :row-key="r => r.value ?? '(untagged)'" surface :empty="'Không có thẻ nào mang tên '+key+' trong khoảng thời gian này.'">
           <template #head-value>{{key}}</template>
-          <template #cell-value="{ row: r }"><span v-if="r.value" class="chip">{{r.value}}</span><span v-else class="muted" title="calls carrying no value for this tag - shown, never dropped">untagged</span></template>
+          <template #cell-value="{ row: r }"><span v-if="r.value" class="chip">{{r.value}}</span><span v-else class="muted" title="Cuộc gọi không mang giá trị cho thẻ này">không gắn thẻ</span></template>
           <template #cell-calls="{ row: r }"><span class="muted">{{r.calls ?? '-'}}</span></template>
           <template #cell-spend="{ row: r }"><b v-if="r.value">{{money(r.charged_micro)}}</b><span v-else class="muted">{{money(r.charged_micro)}}</span></template>
         </DataTable>
       </section>
       <section v-else-if="tagUsageErr[key]" class="pl-sec">
-        <h2 class="pl-h"><span>Spend by {{key}}</span><i></i></h2>
+        <h2 class="pl-h"><span>Chi tiêu theo {{key}}</span><i></i></h2>
         <p class="pl-empty">{{tagUsageErr[key]}}</p>
       </section>
     </template>

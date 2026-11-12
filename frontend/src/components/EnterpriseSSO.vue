@@ -22,7 +22,7 @@ export default {
     },
     async copyEmployeeLink() {
       const url = new URL(`/auth/sso/${encodeURIComponent(this.slug)}/start`, location.origin).href
-      this.message = await this.toClipboard(url) ? 'Employee sign-in link copied.' : 'Could not copy the link.'
+      this.message = await this.toClipboard(url) ? 'Đã sao chép liên kết đăng nhập cho nhân viên.' : 'Không thể sao chép liên kết.'
     },
     async loadSSO() {
       this.sso = null
@@ -31,7 +31,7 @@ export default {
         this.sso = await this.api(`/orgs/${this.orgId}/sso`)
         if (this.owner) this.blockedMembers = (await this.api(`/orgs/${this.orgId}/sso/blocked`)).members
       }
-      catch (e) { this.error = e.detail || 'Could not load SSO settings.' }
+      catch (e) { this.error = e.detail || 'Không thể tải cài đặt SSO.' }
     },
     async action(kind, path, body) {
       this.busy = kind; this.error = ''; this.message = ''
@@ -41,36 +41,36 @@ export default {
           body: JSON.stringify(body || {}),
         })
         if (result.url) { location.href = result.url; return }
-        this.message = kind === 'enforce' ? 'SSO access setting saved.' :
-          kind === 'cancel' ? 'Subscription will end after the current billing period.' : 'Saved.'
+        this.message = kind === 'enforce' ? 'Đã lưu cấu hình quyền truy cập SSO.' :
+          kind === 'cancel' ? 'Gói đăng ký sẽ kết thúc sau kỳ thanh toán hiện tại.' : 'Đã lưu.'
         await this.loadSSO()
-      } catch (e) { this.error = e.detail || `Could not ${kind}.` }
+      } catch (e) { this.error = e.detail || `Không thể thực hiện thao tác ${kind}.` }
       finally { this.busy = '' }
     },
     async inviteIT() {
       const email = this.itEmail.trim()
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.error = "Enter your IT admin's email."; return }
-      await this.action('invite IT admin', 'invite-it', { email })
-      if (!this.error) this.message = 'WorkOS sent the IT admin a setup invitation.'
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.error = "Vui lòng nhập email quản trị viên IT của bạn."; return }
+      await this.action('gửi lời mời quản trị IT', 'invite-it', { email })
+      if (!this.error) this.message = 'WorkOS đã gửi thư mời thiết lập tới quản trị viên IT.'
     },
     async restoreMember(userId) {
-      await this.action('restore SSO access', `blocked/${userId}/restore`)
-      if (!this.error) this.message = 'This employee can sign in with SSO again.'
+      await this.action('khôi phục quyền truy cập SSO', `blocked/${userId}/restore`)
+      if (!this.error) this.message = 'Nhân viên này đã có thể đăng nhập lại qua SSO.'
     },
   },
 }
 </script>
 
 <template>
-  <section class="sso-page" aria-label="Single sign-on settings">
+  <section class="sso-page" aria-label="Cài đặt đăng nhập một lần SSO">
     <header class="sso-heading">
       <div>
-        <div class="lbl">TEAM ACCESS</div>
-        <h2>Company sign-in</h2>
-        <p v-if="owner">Let employees join this team through your company's identity provider. They join as members; you can change their roles in Members.</p>
-        <p v-else>Your team has company sign-in connected. Use the employee link for a future sign-in or share it with a coworker.</p>
+        <div class="lbl">TRUY CẬP ĐỘI NGŨ</div>
+        <h2>Đăng nhập doanh nghiệp (SSO)</h2>
+        <p v-if="owner">Cho phép nhân viên tham gia đội ngũ này thông qua nhà cung cấp danh tính (IdP) của công ty bạn. Họ tham gia với tư cách thành viên; bạn có thể thay đổi vai trò trong mục Thành viên.</p>
+        <p v-else>Đội ngũ của bạn đã kết nối tính năng đăng nhập doanh nghiệp. Hãy sử dụng liên kết nhân viên để đăng nhập hoặc chia sẻ cho đồng nghiệp.</p>
       </div>
-      <span v-if="owner && subscribed" class="sso-progress">{{completedSteps}} of {{setupStepCount}} steps done</span>
+      <span v-if="owner && subscribed" class="sso-progress">Đã hoàn thành {{completedSteps}} / {{setupStepCount}} bước</span>
     </header>
 
     <p v-if="error" class="banner" role="alert">{{error}}</p>
@@ -78,95 +78,95 @@ export default {
 
     <template v-if="sso?.sso_ready && subscribed && !owner">
       <div class="sso-panel">
-        <h3>Company sign-in is ready</h3>
-        <p class="sso-muted">This link starts a company sign-in and can be shared with a coworker who has access through your identity provider.</p>
-        <button class="btn sso-button" @click="copyEmployeeLink">Copy employee sign-in link</button>
+        <h3>Đăng nhập doanh nghiệp đã sẵn sàng</h3>
+        <p class="sso-muted">Liên kết này khởi động quá trình đăng nhập doanh nghiệp và có thể chia sẻ cho đồng nghiệp có quyền truy cập qua nhà cung cấp danh tính của bạn.</p>
+        <button class="btn sso-button" @click="copyEmployeeLink">Sao chép liên kết đăng nhập nhân viên</button>
       </div>
     </template>
 
     <template v-if="owner && sso">
       <div v-if="!sso.configured || !sso.billing_configured" class="sso-panel">
-        <h3>Setup is unavailable</h3>
-        <p class="sso-muted">WorkOS and Stripe must be configured on this deployment before you can set up company sign-in.</p>
+        <h3>Tính năng chưa khả dụng</h3>
+        <p class="sso-muted">Hệ thống WorkOS và thanh toán cần được cấu hình trên máy chủ này trước khi bạn có thể thiết lập đăng nhập doanh nghiệp.</p>
       </div>
 
       <template v-else-if="!subscribed">
-        <div class="sso-section-head"><div class="lbl">YOUR PLAN</div><h3>Choose how employees get access</h3></div>
+        <div class="sso-section-head"><div class="lbl">GÓI DỊCH VỤ</div><h3>Chọn phương thức truy cập cho nhân viên</h3></div>
         <div v-if="sso.enforced" class="sso-panel">
-          <p class="sso-muted">This team still requires SSO. Allow regular sign-in before changing plans.</p>
-          <button class="btn sm sso-button" :disabled="!!busy" @click="action('enforce','enforce',{enabled:false})">Allow regular team sign-in</button>
+          <p class="sso-muted">Đội ngũ này vẫn đang bắt buộc dùng SSO. Hãy cho phép đăng nhập thông thường trước khi đổi gói.</p>
+          <button class="btn sm sso-button" :disabled="!!busy" @click="action('enforce','enforce',{enabled:false})">Cho phép đăng nhập thông thường</button>
         </div>
-        <p v-if="sso.cleanup_pending" class="sso-panel sso-muted">Your previous SSO setup is being removed. You can subscribe again when cleanup finishes.</p>
+        <p v-if="sso.cleanup_pending" class="sso-panel sso-muted">Cấu hình SSO trước đó đang được dọn dẹp. Bạn có thể đăng ký lại khi quá trình hoàn tất.</p>
         <div v-if="sso.plans.length" class="sso-plan-grid">
           <article v-for="plan in sso.plans" :key="plan.id" class="sso-panel sso-plan">
-            <div class="sso-plan-top"><span class="sso-plan-mark" aria-hidden="true">{{plan.directory_sync?'✦':'◇'}}</span><span v-if="plan.directory_sync" class="sso-pill">Automatic offboarding</span></div>
-            <h4>{{plan.directory_sync?'SSO + Directory Sync':'SSO only'}}</h4>
-            <p class="sso-muted">{{plan.directory_sync?'Employees sign in with SSO. Directory changes can also remove their team access and keys.':'Employees sign in with SSO. A team admin removes their access and keys manually.'}}</p>
-            <div class="sso-price"><strong>{{formatUsdCents(plan.usd_monthly_cents)}}</strong><span>/ month, per team</span></div>
+            <div class="sso-plan-top"><span class="sso-plan-mark" aria-hidden="true">{{plan.directory_sync?'✦':'◇'}}</span><span v-if="plan.directory_sync" class="sso-pill">Tự động đồng bộ & thu hồi</span></div>
+            <h4>{{plan.directory_sync?'SSO + Đồng bộ danh bạ (Directory Sync)':'Chỉ đăng nhập SSO'}}</h4>
+            <p class="sso-muted">{{plan.directory_sync?'Nhân viên đăng nhập bằng SSO. Thay đổi trong danh bạ công ty sẽ tự động thu hồi quyền truy cập và khóa của họ.':'Nhân viên đăng nhập bằng SSO. Quản trị viên đội ngũ thu hồi quyền truy cập và khóa thủ công.'}}</p>
+            <div class="sso-price"><strong>{{formatUsdCents(plan.usd_monthly_cents)}}</strong><span>/ tháng, mỗi đội ngũ</span></div>
             <button class="btn sso-button" :class="plan.directory_sync?'primary':''" :disabled="!!busy || sso.cleanup_pending" @click="action('checkout','checkout',{plan:plan.id,price_id:plan.price_id})">
-              Choose {{plan.directory_sync?'SSO + Directory Sync':'SSO only'}} <span aria-hidden="true">→</span>
+              Chọn {{plan.directory_sync?'SSO + Đồng bộ danh bạ':'Chỉ SSO'}} <span aria-hidden="true">→</span>
             </button>
           </article>
         </div>
-        <p v-else-if="!sso.cleanup_pending" class="sso-panel sso-muted">Subscription plans are temporarily unavailable. Please try again shortly.</p>
+        <p v-else-if="!sso.cleanup_pending" class="sso-panel sso-muted">Các gói đăng ký tạm thời chưa sẵn sàng. Vui lòng thử lại sau.</p>
       </template>
 
       <template v-else>
         <div class="sso-panel sso-current-plan">
           <div class="sso-plan-summary">
-            <div><div class="lbl">YOUR PLAN</div><h3>{{directoryPlan?'SSO + Directory Sync':'SSO only'}}</h3><p class="sso-muted">{{directoryPlan?'Company sign-in and automatic employee offboarding':'Company sign-in; remove employees from this team manually'}}</p></div>
-            <span class="sso-pill" :class="sso.subscription_status==='past_due'?'sso-pill-warn':'sso-pill-ok'">{{sso.subscription_status==='past_due'?'Payment retrying':sso.cancel_at_period_end?'Ends this period':'Active'}}</span>
+            <div><div class="lbl">GÓI HIỆN TẠI</div><h3>{{directoryPlan?'SSO + Đồng bộ danh bạ':'Chỉ SSO'}}</h3><p class="sso-muted">{{directoryPlan?'Đăng nhập doanh nghiệp và tự động thu hồi quyền nhân viên':'Đăng nhập doanh nghiệp; xóa nhân viên khỏi đội ngũ thủ công'}}</p></div>
+            <span class="sso-pill" :class="sso.subscription_status==='past_due'?'sso-pill-warn':'sso-pill-ok'">{{sso.subscription_status==='past_due'?'Đang thử lại thanh toán':sso.cancel_at_period_end?'Hết hạn cuối kỳ':'Đang hoạt động'}}</span>
           </div>
-          <p v-if="sso.subscription_status==='past_due'" class="sso-payment-note">Your payment is being retried. SSO remains available. Update your payment method in Billing.</p>
+          <p v-if="sso.subscription_status==='past_due'" class="sso-payment-note">Khoản thanh toán đang được thử lại. SSO vẫn hoạt động. Vui lòng cập nhật phương thức thanh toán trong mục Thanh toán.</p>
           <div class="sso-plan-foot">
-            <span>{{sso.cancel_at_period_end?'Your setup stays available until the paid period ends.':'Billing is separate from your prepaid tool balance.'}}</span>
-            <button v-if="!sso.cancel_at_period_end" class="sso-text-action" :disabled="!!busy" @click="action('cancel','cancel')">Cancel at end of billing period</button>
+            <span>{{sso.cancel_at_period_end?'Cấu hình của bạn vẫn khả dụng cho đến khi kỳ thanh toán kết thúc.':'Hóa đơn gói SSO tách biệt với số dư nạp trước cho công cụ.'}}</span>
+            <button v-if="!sso.cancel_at_period_end" class="sso-text-action" :disabled="!!busy" @click="action('cancel','cancel')">Hủy gói vào cuối chu kỳ thanh toán</button>
           </div>
         </div>
 
-        <div class="sso-section-head"><div class="lbl">SETUP</div><h3>Get your team ready</h3><p>Complete these steps in order. The check marks update after treg verifies each step.</p></div>
+        <div class="sso-section-head"><div class="lbl">THIẾT LẬP</div><h3>Chuẩn bị cho đội ngũ của bạn</h3><p>Hoàn thành các bước theo thứ tự. Dấu kiểm sẽ cập nhật sau khi hệ thống xác minh từng bước.</p></div>
         <div class="sso-steps">
           <article class="sso-panel sso-step" :class="{'sso-step-done':sso.sso_ready}">
             <div class="sso-step-main">
               <span class="sso-check" :class="{'done':sso.sso_ready}" aria-hidden="true">{{sso.sso_ready?'✓':'1'}}</span>
-              <div class="sso-step-copy"><div class="sso-step-title"><h4>Connect and test company SSO</h4><span class="sso-step-state">{{sso.sso_ready?'Verified':'Next step'}}</span></div>
-                <p>{{sso.sso_ready?'An employee has successfully signed in through your company provider.':'Connect your provider in WorkOS, then use the employee link for one test sign-in.'}}</p>
+              <div class="sso-step-copy"><div class="sso-step-title"><h4>Kết nối và kiểm thử SSO doanh nghiệp</h4><span class="sso-step-state">{{sso.sso_ready?'Đã xác minh':'Bước tiếp theo'}}</span></div>
+                <p>{{sso.sso_ready?'Một nhân viên đã đăng nhập thành công qua nhà cung cấp doanh nghiệp.':'Kết nối nhà cung cấp của bạn trong WorkOS, sau đó sử dụng liên kết nhân viên để đăng nhập kiểm thử 1 lần.'}}</p>
                 <div class="sso-actions">
                   <button class="btn sso-button" :class="!sso.sso_ready?'primary':''" :disabled="!!busy" @click="action('open setup','setup/sso')">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6.5 2.5h-4v11h11v-4M8 8l5.5-5.5M9.5 2.5h4v4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    {{sso.sso_ready?'Manage SSO connection':'Set up company SSO'}}
+                    {{sso.sso_ready?'Quản lý kết nối SSO':'Thiết lập SSO doanh nghiệp'}}
                   </button>
                   <button class="btn sso-button" :disabled="!!busy" @click="copyEmployeeLink">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 10H2.5A1.5 1.5 0 0 1 1 8.5v-6A1.5 1.5 0 0 1 2.5 1h6A1.5 1.5 0 0 1 10 2.5V3" stroke-linecap="round"/></svg>
-                    Copy employee sign-in link
+                    Sao chép liên kết nhân viên
                   </button>
                 </div>
-                <button class="sso-text-action sso-invite-toggle" :aria-expanded="showInviteIT" @click="showInviteIT=!showInviteIT">{{showInviteIT?'Hide IT invitation':'Someone else manages your provider? Invite your IT admin'}} <span aria-hidden="true">{{showInviteIT?'↑':'↓'}}</span></button>
-                <div v-if="showInviteIT" class="sso-invite"><p>WorkOS will email setup instructions to your IT admin.</p><div class="field sso-invite-form"><input v-model="itEmail" type="email" autocomplete="email" aria-label="IT admin email" placeholder="it@company.com" @keyup.enter="inviteIT"/><button class="btn sso-button" :disabled="!!busy" @click="inviteIT">Send invitation <span aria-hidden="true">→</span></button></div></div>
+                <button class="sso-text-action sso-invite-toggle" :aria-expanded="showInviteIT" @click="showInviteIT=!showInviteIT">{{showInviteIT?'Ẩn lời mời IT':'Người khác quản lý nhà cung cấp danh tính? Mời quản trị IT của bạn'}} <span aria-hidden="true">{{showInviteIT?'↑':'↓'}}</span></button>
+                <div v-if="showInviteIT" class="sso-invite"><p>WorkOS sẽ gửi email hướng dẫn thiết lập tới quản trị viên IT của bạn.</p><div class="field sso-invite-form"><input v-model="itEmail" type="email" autocomplete="email" aria-label="Email quản trị IT" placeholder="it@company.com" @keyup.enter="inviteIT"/><button class="btn sso-button" :disabled="!!busy" @click="inviteIT">Gửi thư mời <span aria-hidden="true">→</span></button></div></div>
               </div>
             </div>
           </article>
 
           <article v-if="directoryPlan" class="sso-panel sso-step" :class="{'sso-step-done':sso.directory_ready}">
             <div class="sso-step-main"><span class="sso-check" :class="{'done':sso.directory_ready}" aria-hidden="true">{{sso.directory_ready?'✓':'2'}}</span><div class="sso-step-copy">
-              <div class="sso-step-title"><h4>Connect Directory Sync</h4><span class="sso-step-state">{{sso.directory_ready?'Connected':'Not connected'}}</span></div>
-              <p>{{sso.directory_ready?'Employee changes can now update access in treg.':'Connect your employee directory so removals can revoke team access and keys.'}}</p>
-              <button class="btn sso-button" :class="sso.sso_ready && !sso.directory_ready?'primary':''" :disabled="!!busy" @click="action('open setup','setup/dsync')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6.5 2.5h-4v11h11v-4M8 8l5.5-5.5M9.5 2.5h4v4" stroke-linecap="round" stroke-linejoin="round"/></svg>{{sso.directory_ready?'Manage directory':'Set up Directory Sync'}}</button>
+              <div class="sso-step-title"><h4>Kết nối Directory Sync</h4><span class="sso-step-state">{{sso.directory_ready?'Đã kết nối':'Chưa kết nối'}}</span></div>
+              <p>{{sso.directory_ready?'Thay đổi nhân sự giờ đây có thể tự động cập nhật quyền trong hệ thống.':'Kết nối danh bạ nhân viên để tự động thu hồi quyền truy cập và khóa khi nhân viên rời đi.'}}</p>
+              <button class="btn sso-button" :class="sso.sso_ready && !sso.directory_ready?'primary':''" :disabled="!!busy" @click="action('open setup','setup/dsync')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6.5 2.5h-4v11h11v-4M8 8l5.5-5.5M9.5 2.5h4v4" stroke-linecap="round" stroke-linejoin="round"/></svg>{{sso.directory_ready?'Quản lý danh bạ':'Thiết lập Directory Sync'}}</button>
             </div></div>
           </article>
 
           <article class="sso-panel sso-step" :class="{'sso-step-done':sso.enforced}">
             <div class="sso-step-main"><span class="sso-check" :class="{'done':sso.enforced}" aria-hidden="true">{{sso.enforced?'✓':setupStepCount}}</span><div class="sso-step-copy">
-              <div class="sso-step-title"><h4>Require SSO for this team</h4><span class="sso-step-state">{{sso.enforced?'On':'Off'}}</span></div>
-              <p>{{sso.enforced?'Members must use company SSO to access this team. The owner keeps normal sign-in for recovery.':'After a successful test sign-in, require company SSO for members. The owner keeps normal sign-in for recovery.'}}</p>
-              <p v-if="directoryPlan && !sso.directory_ready && sso.sso_ready" class="sso-step-hint">Finish Directory Sync first if you want automatic employee offboarding.</p>
-              <button class="btn sso-button" :class="sso.sso_ready && (!directoryPlan || sso.directory_ready) && !sso.enforced?'primary':''" :disabled="!!busy || (!sso.sso_ready && !sso.enforced)" @click="action('enforce','enforce',{enabled:!sso.enforced})"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.5 13 3v4.3c0 3.1-2 5.3-5 7.2-3-1.9-5-4.1-5-7.2V3l5-1.5Z" stroke-linejoin="round"/><path d="m5.8 7.9 1.5 1.5 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>{{sso.enforced?'Allow regular team sign-in':'Require SSO'}}</button>
-              <span v-if="!sso.sso_ready" class="sso-step-hint">Complete the test sign-in first.</span>
+              <div class="sso-step-title"><h4>Bắt buộc dùng SSO cho đội ngũ</h4><span class="sso-step-state">{{sso.enforced?'Đang bật':'Đang tắt'}}</span></div>
+              <p>{{sso.enforced?'Thành viên bắt buộc phải sử dụng SSO doanh nghiệp để truy cập đội ngũ. Chủ sở hữu vẫn giữ đăng nhập thông thường để khôi phục.':'Sau khi đăng nhập kiểm thử thành công, hãy bắt buộc đăng nhập SSO cho các thành viên. Chủ sở hữu vẫn giữ đăng nhập thông thường.'}}</p>
+              <p v-if="directoryPlan && !sso.directory_ready && sso.sso_ready" class="sso-step-hint">Hoàn tất Directory Sync trước nếu bạn muốn tự động thu hồi quyền nhân viên khi nghỉ việc.</p>
+              <button class="btn sso-button" :class="sso.sso_ready && (!directoryPlan || sso.directory_ready) && !sso.enforced?'primary':''" :disabled="!!busy || (!sso.sso_ready && !sso.enforced)" @click="action('enforce','enforce',{enabled:!sso.enforced})"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.5 13 3v4.3c0 3.1-2 5.3-5 7.2-3-1.9-5-4.1-5-7.2V3l5-1.5Z" stroke-linejoin="round"/><path d="m5.8 7.9 1.5 1.5 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>{{sso.enforced?'Cho phép đăng nhập thông thường':'Bắt buộc dùng SSO'}}</button>
+              <span v-if="!sso.sso_ready" class="sso-step-hint">Vui lòng hoàn thành bước đăng nhập kiểm thử trước.</span>
             </div></div>
           </article>
         </div>
 
-        <div v-if="blockedMembers.length" class="sso-panel sso-blocked"><h3>Employees removed by a team admin</h3><p class="sso-muted">They cannot rejoin through SSO until you allow access again.</p><div v-for="member in blockedMembers" :key="member.user_id" class="sso-blocked-row"><span>{{member.email}}</span><button class="btn sm" :disabled="!!busy" @click="restoreMember(member.user_id)">Allow SSO again</button></div></div>
+        <div v-if="blockedMembers.length" class="sso-panel sso-blocked"><h3>Nhân viên đã bị quản trị viên xóa khỏi đội ngũ</h3><p class="sso-muted">Họ không thể tham gia lại qua SSO cho đến khi bạn cho phép lại.</p><div v-for="member in blockedMembers" :key="member.user_id" class="sso-blocked-row"><span>{{member.email}}</span><button class="btn sm" :disabled="!!busy" @click="restoreMember(member.user_id)">Cho phép SSO lại</button></div></div>
       </template>
     </template>
   </section>

@@ -23,7 +23,7 @@ export default {
   methods: {
     async copyMemberSsoLink() {
       const url = new URL(`/auth/sso/${encodeURIComponent(this.activeOrg.slug)}/start`, location.origin).href
-      this.orgMsg = await this.toClipboard(url) ? 'Employee sign-in link copied.' : 'Could not copy the sign-in link.'
+      this.orgMsg = await this.toClipboard(url) ? 'Đã sao chép liên kết đăng nhập cho nhân viên.' : 'Không thể sao chép liên kết đăng nhập.'
     },
     async loadMemberSso() {
       this.memberSsoReady = false
@@ -47,7 +47,7 @@ export default {
               <p class="sub" style="margin:0">{{t('team.role_desc', {role: activeRole})}} <span class="muted">Chuyển đổi, tạo mới hoặc tham gia đội ngũ từ menu ở đầu trang.</span></p>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
                 <button class="btn sm primary" @click="agentConnectDialog=true">{{t('mcp.nav_btn')}}</button>
-                <button v-if="activeRole!=='owner' && memberSsoReady" class="btn sm" @click="copyMemberSsoLink">Copy company sign-in link</button>
+                <button v-if="activeRole!=='owner' && memberSsoReady" class="btn sm" @click="copyMemberSsoLink">Sao chép liên kết SSO công ty</button>
               </div>
             </div>
           </div>
@@ -63,28 +63,28 @@ export default {
               <button v-if="activeRole==='owner' || memberSsoReady" :class="{active:orgTab==='sso'}" @click="orgTab='sso'">{{t('team.tab_sso')}}</button>
               <button :class="{active:orgTab==='danger'}" @click="orgTab='danger'; resetRenameForm()">{{t('team.tab_settings')}}</button>
             </div>
-            <p v-if="!canAdmin && !['keys','danger','sso'].includes(orgTab)" class="sub" style="margin-bottom:12px">Members, projects and policy are visible to admins.</p>
+            <p v-if="!canAdmin && !['keys','danger','sso'].includes(orgTab)" class="sub" style="margin-bottom:12px">Thành viên, dự án và chính sách chỉ hiển thị cho quản trị viên.</p>
             <div v-if="memberFunds && !canAdmin" class="tut-notice" role="status" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-              <span>If your team is out of credit, ask an admin to add funds<template v-if="teamAdmins && teamAdmins.length">: <b>{{teamAdmins.map(a=>a.email).join(', ')}}</b></template>. Only admins can see Billing.</span>
-              <button class="btn sm ico" @click="memberFunds=false" aria-label="Dismiss">✕</button>
+              <span>Nếu đội ngũ của bạn hết tiền, hãy liên hệ quản trị viên để nạp thêm<template v-if="teamAdmins && teamAdmins.length">: <b>{{teamAdmins.map(a=>a.email).join(', ')}}</b></template>. Chỉ quản trị viên mới có quyền xem mục Thanh toán.</span>
+              <button class="btn sm ico" @click="memberFunds=false" aria-label="Đóng">✕</button>
             </div>
-            <p v-if="myUsage && myUsage.cap>=0" class="sub" style="margin:-6px 0 12px">Your usage today: <b>{{myUsage.used_today}} / {{myUsage.cap}}</b> calls.</p>
+            <p v-if="myUsage && myUsage.cap>=0" class="sub" style="margin:-6px 0 12px">Lượt dùng của bạn hôm nay: <b>{{myUsage.used_today}} / {{myUsage.cap}}</b> lượt gọi.</p>
             <div v-if="orgErr" class="banner">{{orgErr}}</div>
             <div v-if="billingNote && canAdmin" class="tut-notice" role="status" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-              <span>{{billingNote}}</span><button class="btn sm ico" @click="billingNote=''" aria-label="Dismiss">✕</button>
+              <span>{{billingNote}}</span><button class="btn sm ico" @click="billingNote=''" aria-label="Đóng">✕</button>
             </div>
             <div v-if="orgMsg" class="tut-notice" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-              <span>{{orgMsg}}</span><button class="btn sm ico" @click="orgMsg=''" aria-label="Dismiss">✕</button>
+              <span>{{orgMsg}}</span><button class="btn sm ico" @click="orgMsg=''" aria-label="Đóng">✕</button>
             </div>
             <EnterpriseSSO v-if="orgTab==='sso' && (activeRole==='owner' || memberSsoReady)" :org-id="activeOrg.org_id" :slug="activeOrg.slug" :owner="activeRole==='owner'" />
             <div v-if="credentialIssue" class="tut-notice" role="status" style="margin-bottom:12px">
-              <template v-if="credentialIssue.status==='pending'">Your key request is in progress. You can switch teams and return here for the result. Keep this browser tab open.</template>
-              <template v-else-if="credentialIssue.status==='checking'">Checking that your issued key is still active before showing it…</template>
+              <template v-if="credentialIssue.status==='pending'">Yêu cầu tạo khóa đang được xử lý. Bạn có thể chuyển đội ngũ và quay lại đây nhận kết quả. Vui lòng giữ tab trình duyệt này.</template>
+              <template v-else-if="credentialIssue.status==='checking'">Đang kiểm tra khóa vừa phát hành…</template>
               <template v-else-if="credentialIssue.error">{{credentialIssue.error}}</template>
-              <template v-else>Save this key before issuing another one. It is kept only in this browser tab until you close the key card; closing or reloading the tab loses it.</template>
-              <button v-if="credentialIssue.status==='held'" class="btn sm" @click="resumeCredentialIssue">Check key status</button>
-              <button v-if="credentialIssue.status==='ready' && orgTab!==(credentialIssue.type==='agent'?'members':'keys')" class="btn sm" @click="orgTab=credentialIssue.type==='agent'?'members':'keys'">Open issued key</button>
-              <button v-if="['failed','unavailable'].includes(credentialIssue.status)" class="btn sm" @click="dismissCredentialIssue">Dismiss</button>
+              <template v-else>Hãy lưu khóa này trước khi tạo khóa khác. Khóa chỉ lưu trong tab trình duyệt này cho đến khi bạn đóng thẻ khóa.</template>
+              <button v-if="credentialIssue.status==='held'" class="btn sm" @click="resumeCredentialIssue">Kiểm tra trạng thái khóa</button>
+              <button v-if="credentialIssue.status==='ready' && orgTab!==(credentialIssue.type==='agent'?'members':'keys')" class="btn sm" @click="orgTab=credentialIssue.type==='agent'?'members':'keys'">Mở khóa vừa tạo</button>
+              <button v-if="['failed','unavailable'].includes(credentialIssue.status)" class="btn sm" @click="dismissCredentialIssue">Bỏ qua</button>
             </div>
 
             <template v-if="canAdmin && orgTab==='members'">
@@ -92,55 +92,53 @@ export default {
           <!-- the token is shown ONCE: make that unmissable -->
           <div v-if="newAgent || snipAgent" class="card" style="margin-top:16px" :style="newAgent?'border-color:var(--accent)':''">
             <div class="lbl" style="margin-top:0;display:flex;align-items:center;gap:10px">
-              <template v-if="newAgent">Token for {{newAgent.name}} — copy it now</template>
-              <template v-else>How to use {{snipAgent.name}}</template>
-              <button v-if="!newAgent" class="btn sm" style="margin-left:auto" @click="snipAgent=null">Close</button>
+              <template v-if="newAgent">Token cho {{newAgent.name}} — hãy sao chép ngay</template>
+              <template v-else>Cách sử dụng {{snipAgent.name}}</template>
+              <button v-if="!newAgent" class="btn sm" style="margin-left:auto" @click="snipAgent=null">Đóng</button>
             </div>
-            <p v-if="newAgent && newAgent.rotated" class="tut-notice" style="margin:2px 0 10px"><b>The previous key stopped working immediately.</b> Update <b>{{newAgent.name}}</b> everywhere it runs before closing this card.</p>
-            <p v-if="newAgent" class="sub" style="margin:2px 0 10px">Save this key before closing the card or browser tab. Put it in the agent's <code>TREG_TOKEN</code>. Anyone holding it can act as {{newAgent.name}}, so keep it in an environment variable or secret manager — never commit or share it.
-              <span v-if="agentConnected" class="chip ok" style="margin-left:8px">✓ connected — {{newAgent.name}} called in as itself</span>
-              <span v-else class="muted" style="margin-left:8px">waiting for its first check-in…</span></p>
-            <p v-else class="sub" style="margin:2px 0 10px">The server stores only a hash of the token, so it can't be shown again — these snippets use <span class="mono">$TREG_TOKEN</span>. <button class="btn sm" :disabled="!!credentialIssue" @click="rotateAgent(snipAgent,true)">⟳ Rotate &amp; fill real token</button> <span class="muted">(the old token stops working)</span></p>
+            <p v-if="newAgent && newAgent.rotated" class="tut-notice" style="margin:2px 0 10px"><b>Khóa trước đó đã ngừng hoạt động ngay lập tức.</b> Hãy cập nhật <b>{{newAgent.name}}</b> ở mọi nơi đang chạy trước khi đóng thẻ này.</p>
+            <p v-if="newAgent" class="sub" style="margin:2px 0 10px">Lưu khóa này trước khi đóng thẻ hoặc tab trình duyệt. Gán vào biến môi trường <code>TREG_TOKEN</code> của Agent. Bất kỳ ai có khóa này đều có thể đại diện cho {{newAgent.name}}, hãy bảo mật tuyệt đối và không commit vào mã nguồn.
+              <span v-if="agentConnected" class="chip ok" style="margin-left:8px">✓ đã kết nối — {{newAgent.name}} đã gọi thành công</span>
+              <span v-else class="muted" style="margin-left:8px">đang chờ lượt kết nối đầu tiên…</span></p>
+            <p v-else class="sub" style="margin:2px 0 10px">Máy chủ chỉ lưu mã băm của token nên không thể hiển thị lại — các đoạn mã này sử dụng <span class="mono">$TREG_TOKEN</span>. <button class="btn sm" :disabled="!!credentialIssue" @click="rotateAgent(snipAgent,true)">⟳ Đổi khóa &amp; điền token thật</button> <span class="muted">(khóa cũ sẽ ngừng hoạt động)</span></p>
             <div v-if="newAgent" class="field">
               <input :value="newAgent.token" readonly style="font-family:var(--mono)" @focus="$event.target.select()"/>
-              <button class="btn primary" @click="copy(newAgent.token,'agenttok')">{{copied==='agenttok'?'Copied':'Copy'}}</button>
-              <button class="btn" @click="dismissCredentialIssue">{{newAgent.rotated?'I’ve updated '+newAgent.name:'Done'}}</button>
+              <button class="btn primary" @click="copy(newAgent.token,'agenttok')">{{copied==='agenttok'?'Đã chép':'Sao chép'}}</button>
+              <button class="btn" @click="dismissCredentialIssue">{{newAgent.rotated?'Đã cập nhật '+newAgent.name:'Xong'}}</button>
             </div>
-            <!-- a bare token is a dead end: hand over the paste-ready thing, like the Tools snippets do -->
             <div class="tabs" style="margin:14px 0 8px">
-              <button :class="{active:agentSnip==='prompt'}" @click="agentSnip='prompt'">Give it to your agent</button>
-              <button :class="{active:agentSnip==='env'}" @click="agentSnip='env'">Environment</button>
+              <button :class="{active:agentSnip==='prompt'}" @click="agentSnip='prompt'">Gửi cho Agent của bạn</button>
+              <button :class="{active:agentSnip==='env'}" @click="agentSnip='env'">Biến môi trường (.env)</button>
             </div>
             <div class="lc-codewrap">
-              <button class="lc-cp" @click="copy(agentSnippet,'agentsnip')">{{copied==='agentsnip'?'✓ copied':'copy'}}</button>
+              <button class="lc-cp" @click="copy(agentSnippet,'agentsnip')">{{copied==='agentsnip'?'✓ đã chép':'sao chép'}}</button>
               <pre style="max-height:220px;overflow:auto">{{agentSnippet}}</pre>
             </div>
-            <p class="sub" style="margin:6px 0 0;font-size:11.5px">Put this wherever the agent runs — a <span class="mono">.env</span>, a CI secret, or its config.</p>
+            <p class="sub" style="margin:6px 0 0;font-size:11.5px">Đặt đoạn này ở bất kỳ đâu Agent chạy — trong file <span class="mono">.env</span>, CI secret hoặc file cấu hình.</p>
           </div>
 
-
-              <div class="lbl" style="margin-top:14px">Members</div>
-              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Daily cap = how many calls + runs a member may make per day. Leave it empty for no limit.</p>
-              <p class="sub" style="margin:-2px 0 8px;font-size:12px"><b>Tools</b> = which endpoints/CLIs a member may call or run. <b>Local run</b> = may run CLIs on their own machine (off = server only). The owner always has full access.</p>
+              <div class="lbl" style="margin-top:14px">Thành viên</div>
+              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Hạn mức ngày = số lượt gọi API + lệnh chạy tối đa mỗi ngày của một thành viên. Để trống nếu không giới hạn.</p>
+              <p class="sub" style="margin:-2px 0 8px;font-size:12px"><b>Công cụ</b> = những endpoint/CLI thành viên được phép gọi hoặc chạy. <b>Chạy local</b> = được phép chạy CLI trên máy riêng (tắt = chỉ chạy trên server). Chủ sở hữu luôn có toàn quyền.</p>
               <table>
-                <tr><th>Email</th><th>Role</th><th style="text-align:right">Today</th><th>Daily cap</th><th>Tools</th><th>Local run</th><th></th></tr>
+                <tr><th>Email</th><th>Vai trò</th><th style="text-align:right">Hôm nay</th><th>Hạn mức ngày</th><th>Công cụ</th><th>Chạy local</th><th></th></tr>
                 <!-- An empty roster under its header read as "no members" until the request answered. -->
-                <tr v-if="!orgMembersLoaded"><td colspan="7" class="muted">Loading members…</td></tr>
+                <tr v-if="!orgMembersLoaded"><td colspan="7" class="muted">Đang tải danh sách thành viên…</td></tr>
                 <template v-for="m in rosterMembers" :key="m.key">
                 <tr v-if="m.is_observed">
-                  <td><span style="opacity:.45">↳</span> <b>{{m.client}}</b> <span class="chip" title="seen in this member\'s traffic — the runtime reports itself; attribution, not authentication">detected</span>
-                    <div class="muted" style="font-size:11px">runs as {{short(m.member)}} — inherits their full access</div></td>
+                  <td><span style="opacity:.45">↳</span> <b>{{m.client}}</b> <span class="chip" title="nhận diện qua lưu lượng truy cập">phát hiện</span>
+                    <div class="muted" style="font-size:11px">chạy dưới quyền {{short(m.member)}} — kế thừa toàn bộ quyền truy cập</div></td>
                   <td><span class="muted" style="font-size:12px">—</span></td>
                   <td style="text-align:right" class="muted">{{m.used_today}}</td>
-                  <td colspan="3"><span class="muted" style="font-size:12px">{{m.calls_30d}} calls in 30 days · last seen {{when(m.last_seen)}}</span></td>
-                  <td style="text-align:right"><button class="btn sm" @click="promoteObserved(m)" title="mint this runtime its own token — its own cap, scope and audit trail">Scope this agent</button></td>
+                  <td colspan="3"><span class="muted" style="font-size:12px">{{m.calls_30d}} lượt gọi trong 30 ngày · thấy lần cuối {{when(m.last_seen)}}</span></td>
+                  <td style="text-align:right"><button class="btn sm" @click="promoteObserved(m)" title="cấp token riêng cho runtime này">Giới hạn quyền cho Agent này</button></td>
                 </tr>
                 <tr v-else>
                   <td>
                     <template v-if="m.is_agent"><span style="opacity:.45">↳</span> <b>{{m.name}}</b> <span class="chip" :title="m.email">agent</span>
-                      <div class="muted" style="font-size:11px">{{m.created_by?('owned by '+short(m.created_by)):'machine identity'}}</div>
-                      <div v-if="confirmAgent==='rotate-'+m.user_id" class="sub" style="font-size:11px;margin-top:5px;max-width:360px"><b>Its current key will stop immediately.</b> The next card shows the replacement once so you can update {{m.name}}.</div>
-                      <div v-if="confirmAgent==='revoke-'+m.user_id" class="sub" style="font-size:11px;margin-top:5px;max-width:360px"><b>This removes the agent and revokes all its keys.</b> Activity stays for audit; restoring it means creating and configuring it again.</div></template>
+                      <div class="muted" style="font-size:11px">{{m.created_by?('tạo bởi '+short(m.created_by)):'danh tính máy'}}</div>
+                      <div v-if="confirmAgent==='rotate-'+m.user_id" class="sub" style="font-size:11px;margin-top:5px;max-width:360px"><b>Khóa hiện tại sẽ dừng ngay lập tức.</b> Thẻ tiếp theo sẽ hiển thị khóa thay thế một lần duy nhất để bạn cập nhật cho {{m.name}}.</div>
+                      <div v-if="confirmAgent==='revoke-'+m.user_id" class="sub" style="font-size:11px;margin-top:5px;max-width:360px"><b>Thao tác này sẽ xóa Agent và thu hồi toàn bộ khóa.</b> Lịch sử hoạt động vẫn được lưu trữ kiểm toán.</div></template>
                     <span v-else style="display:inline-flex;gap:8px;align-items:center"><Avatar :src="m.avatar_url" :name="m.email" :size="22" round />{{m.email}}</span>
                   </td>
                   <td>
@@ -150,21 +148,21 @@ export default {
                     <span v-else class="role" :class="m.role">{{m.role}}</span>
                   </td>
                   <td style="text-align:right" class="muted">{{m.used_today}}</td>
-                  <td><input class="msel" type="number" min="0" step="1" style="width:78px" :value="capField(m.daily_call_cap)" placeholder="No limit" @change="setCap(m,$event.target.value)" :aria-label="'Daily cap for '+(m.email||m.name)" title="Empty = no limit"/></td>
+                  <td><input class="msel" type="number" min="0" step="1" style="width:78px" :value="capField(m.daily_call_cap)" placeholder="Không giới hạn" @change="setCap(m,$event.target.value)" :aria-label="'Hạn mức ngày cho '+(m.email||m.name)" title="Trống = không giới hạn"/></td>
                   <td>
-                    <span v-if="m.role==='owner'" class="chip">All</span>
-                    <button v-else class="btn sm" :class="{active:editAccess===m.user_id}" @click="openAccess(m)" :title="m.tool_access===null?'Access to every tool':'Access to '+m.tool_access.length+' tool(s)'">{{m.tool_access===null?'All':m.tool_access.length+' tools'}} ▾</button>
+                    <span v-if="m.role==='owner'" class="chip">Toàn bộ</span>
+                    <button v-else class="btn sm" :class="{active:editAccess===m.user_id}" @click="openAccess(m)" :title="m.tool_access===null?'Truy cập mọi công cụ':'Truy cập '+m.tool_access.length+' công cụ'">{{m.tool_access===null?'Toàn bộ':m.tool_access.length+' công cụ'}} ▾</button>
                   </td>
                   <td>
-                    <label class="tgl" :title="m.role==='owner'?'the owner always may run locally':(m.local_run_enabled?'local runs on — click to disable':'local runs off — server only')">
+                    <label class="tgl" :title="m.role==='owner'?'chủ sở hữu luôn được chạy local':(m.local_run_enabled?'chạy local đang bật — bấm để tắt':'chạy local đang tắt — chỉ chạy trên server')">
                       <input type="checkbox" :checked="m.local_run_enabled" :disabled="m.role==='owner'" @change="setLocalRun(m,$event.target.checked)"/>
-                      <span>{{m.local_run_enabled?'on':'off'}}</span>
+                      <span>{{m.local_run_enabled?'bật':'tắt'}}</span>
                     </label>
                   </td>
                   <td style="text-align:right;white-space:nowrap">
                     <template v-if="m.is_agent">
-                      <span class="row-actions"><button class="btn sm" @click="showAgentSetup(m)" title="how to give this agent its identity">{{t('team.setup')}}</button>
-                      <button class="btn sm" :disabled="!!credentialIssue" :class="{danger:confirmAgent==='rotate-'+m.user_id}" @click="rotateAgent(m)" title="issue a new token — the old one stops working immediately">{{confirmAgent==='rotate-'+m.user_id?t('team.rotate_confirm'):t('team.rotate')}}</button>
+                      <span class="row-actions"><button class="btn sm" @click="showAgentSetup(m)" title="hướng dẫn cấp danh tính cho agent">{{t('team.setup')}}</button>
+                      <button class="btn sm" :disabled="!!credentialIssue" :class="{danger:confirmAgent==='rotate-'+m.user_id}" @click="rotateAgent(m)" title="tạo token mới — token cũ ngừng hoạt động ngay">{{confirmAgent==='rotate-'+m.user_id?t('team.rotate_confirm'):t('team.rotate')}}</button>
                       <button class="btn sm" :class="{danger:confirmAgent==='revoke-'+m.user_id}" @click="revokeAgent(m)">{{confirmAgent==='revoke-'+m.user_id?t('team.revoke_confirm'):t('team.revoke')}}</button></span>
                     </template>
                     <button v-else-if="m.role!=='owner'" class="btn sm" :class="{danger:confirmRemove===m.user_id}" @click="removeMember(m)">{{confirmRemove===m.user_id?t('team.remove_member_confirm'):t('team.remove_member')}}</button>
@@ -173,22 +171,22 @@ export default {
                 <tr v-if="!m.is_observed && editAccess===m.user_id">
                   <td colspan="7" style="background:color-mix(in srgb,var(--accent) 5%,transparent)">
                     <div style="padding:6px 2px">
-                      <div class="sub" style="margin-bottom:6px">Tools &amp; skills <b>{{m.email}}</b> may use/see — uncheck to withhold. All checked = full access (and new ones apply automatically).</div>
-                      <div v-if="!accessNames.length" class="muted" style="font-size:12px">No tools registered yet.</div>
+                      <div class="sub" style="margin-bottom:6px">Công cụ &amp; skills <b>{{m.email}}</b> được phép dùng — bỏ chọn để thu hồi. Chọn tất cả = toàn quyền (và công cụ mới sẽ tự động cấp quyền).</div>
+                      <div v-if="!accessNames.length" class="muted" style="font-size:12px">Chưa có công cụ nào được đăng ký.</div>
                       <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
                         <label v-for="n in accessNames" :key="n" class="tgl" style="min-width:150px">
                           <input type="checkbox" v-model="accessDraft[n]"/><span>{{n}}</span>
                         </label>
                       </div>
                       <template v-if="projects.length">
-                        <div class="sub" style="margin:12px 0 6px">Projects <b>{{m.email}}</b> may use — all checked = every project (and new ones apply automatically). Tools with no project stay visible to everyone.</div>
+                        <div class="sub" style="margin:12px 0 6px">Dự án <b>{{m.email}}</b> được phép truy cập — chọn tất cả = mọi dự án. Công cụ không thuộc dự án nào sẽ hiển thị với tất cả mọi người.</div>
                         <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
                           <label v-for="p in projects" :key="p.id" class="tgl" style="min-width:150px">
                             <input type="checkbox" v-model="projDraft[p.id]"/><span>{{p.name}}</span>
                           </label>
                         </div>
                       </template>
-                      <p v-else class="sub" style="margin:12px 0 0;font-size:12px">Tip: create a <a href="#" @click.prevent="orgTab='projects'">project</a> to scope members to just part of the team's tools.</p>
+                      <p v-else class="sub" style="margin:12px 0 0;font-size:12px">Gợi ý: tạo một <a href="#" @click.prevent="orgTab='projects'">dự án</a> để phân chia quyền hạn công cụ theo nhóm.</p>
                       <div style="margin-top:10px;display:flex;gap:8px">
                         <button class="btn sm primary" @click="saveAccess(m)">{{t('team.save_access')}}</button>
                         <button class="btn sm" @click="editAccess=null">{{t('common.cancel')}}</button>
@@ -204,117 +202,117 @@ export default {
               <div class="lbl" style="margin-top:22px;display:flex;align-items:center;gap:10px">Thêm vào đội ngũ
                 <button v-if="!isPersonal(activeOrg)" class="btn sm" :class="{active:showInvite}" @click="showInvite=!showInvite; if(showInvite)showAddAgent=false">{{t('team.add_member')}}</button>
                 <button class="btn sm" :class="{active:showAddAgent}" @click="openAddAgent()">{{t('team.add_agent')}}</button></div>
-              <p class="sub" style="margin:-2px 0 8px;font-size:12px">A member is a person who signs in. An agent is a machine identity with its own token — capped, scoped and logged as itself. Scope either with <b>Tools</b> and <b>Projects</b> above.</p>
+              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Thành viên là người dùng đăng nhập. Agent là danh tính máy có token riêng — có hạn mức, phạm vi truy cập và nhật ký riêng. Phân quyền qua <b>Công cụ</b> và <b>Dự án</b> ở trên.</p>
               <div v-show="showAddAgent">
-          <div class="lbl" style="margin-top:18px">New agent</div>
+          <div class="lbl" style="margin-top:18px">Agent mới</div>
           <p v-if="promoteHint" class="sub" style="margin:-2px 0 6px;font-size:12px;color:var(--accent)">{{promoteHint}}</p>
           <div class="field" style="max-width:620px">
-            <input v-model="agentName" placeholder="ci-bot" @keyup.enter="createAgent"/>
+            <input v-model="agentName" placeholder="tên-agent (vd: ci-bot)" @keyup.enter="createAgent"/>
             <select v-model="agentRole" class="msel"><option>viewer</option><option>member</option><option v-if="isOwner">admin</option></select>
-            <input :value="capField(agentCap)" @input="agentCap=capValue($event.target.value)" type="number" min="0" step="1" class="msel" style="width:96px" placeholder="No limit" aria-label="Daily call cap" title="Daily call cap; empty = no limit"/>
-            <button class="btn primary" @click="createAgent" :disabled="agentBusy||!!credentialIssue||!agentAccessMode">{{agentBusy?'…':'Create'}}</button>
+            <input :value="capField(agentCap)" @input="agentCap=capValue($event.target.value)" type="number" min="0" step="1" class="msel" style="width:96px" placeholder="Không giới hạn" aria-label="Hạn mức gọi ngày" title="Hạn mức gọi ngày; để trống = không giới hạn"/>
+            <button class="btn primary" @click="createAgent" :disabled="agentBusy||!!credentialIssue||!agentAccessMode">{{agentBusy?'…':'Tạo Agent'}}</button>
           </div>
           <div style="max-width:620px;margin:4px 0 8px">
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-              <span class="sub" style="font-size:12px"><b>Tools:</b></span>
-              <label class="tgl"><input type="radio" value="all" v-model="agentAccessMode"/><span>All tools</span></label>
-              <label class="tgl"><input type="radio" value="choose" v-model="agentAccessMode"/><span>Choose tools</span></label>
-              <span v-if="!agentAccessMode" class="sub" style="font-size:11px;color:var(--accent)">Choose access before creating.</span>
+              <span class="sub" style="font-size:12px"><b>Công cụ:</b></span>
+              <label class="tgl"><input type="radio" value="all" v-model="agentAccessMode"/><span>Tất cả công cụ</span></label>
+              <label class="tgl"><input type="radio" value="choose" v-model="agentAccessMode"/><span>Chọn công cụ</span></label>
+              <span v-if="!agentAccessMode" class="sub" style="font-size:11px;color:var(--accent)">Vui lòng chọn quyền truy cập trước khi tạo.</span>
             </div>
             <div v-if="agentAccessMode==='choose'" style="display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:7px">
-              <span v-if="!accessNames.length" class="muted" style="font-size:12px">No tools registered yet; this agent will have no tool access.</span>
+              <span v-if="!accessNames.length" class="muted" style="font-size:12px">Chưa có công cụ nào; Agent này sẽ không có quyền truy cập công cụ nào.</span>
               <label v-for="n in accessNames" :key="n" class="tgl" style="min-width:150px"><input type="checkbox" v-model="agentToolSel[n]"/><span>{{n}}</span></label>
             </div>
           </div>
           <div v-if="projects.length" style="max-width:620px;margin:4px 0 0;display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center">
-            <span class="sub" style="font-size:12px">Projects (all checked = every project):</span>
+            <span class="sub" style="font-size:12px">Dự án (chọn tất cả = mọi dự án):</span>
             <label v-for="p in projects" :key="p.id" class="tgl"><input type="checkbox" v-model="agentProjSel[p.id]"/><span>{{p.name}}</span></label>
           </div>
-          <p class="sub" style="margin:-2px 0 0;font-size:12px">An empty cap means no daily limit. An agent can never be an owner, and can never sign in; its token is the only way to act as it.</p>
+          <p class="sub" style="margin:-2px 0 0;font-size:12px">Để trống hạn mức nghĩa là không giới hạn. Agent không thể là chủ sở hữu và không thể đăng nhập trực tiếp; token là cách duy nhất để gọi dưới danh tính của nó.</p>
 
               </div>
               <template v-if="!isPersonal(activeOrg)">
               <div v-show="showInvite">
               <div class="field" style="max-width:560px">
-                <input v-model="inviteEmail" type="email" placeholder="teammate@email.com" @keyup.enter="sendInvite"/>
+                <input v-model="inviteEmail" type="email" placeholder="dongnghiep@email.com" @keyup.enter="sendInvite"/>
                 <select v-model="inviteRole" class="msel"><option>viewer</option><option>member</option><option v-if="isOwner">admin</option></select>
-                <button class="btn primary" @click="sendInvite" :disabled="orgBusy">{{orgBusy?'…':'Invite'}}</button>
+                <button class="btn primary" @click="sendInvite" :disabled="orgBusy">{{orgBusy?'…':'Mời'}}</button>
               </div>
               <div style="max-width:560px;margin:-4px 0 4px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-                <label class="tgl"><input type="radio" :checked="!inviteCustomize" @change="inviteCustomize=false"/><span>All tools</span></label>
-                <label class="tgl"><input type="radio" :checked="inviteCustomize" @change="openInviteCustomize()"/><span>Customize</span></label>
-                <label class="tgl"><input type="checkbox" v-model="inviteLocalRun"/><span>Local runs allowed</span></label>
+                <label class="tgl"><input type="radio" :checked="!inviteCustomize" @change="inviteCustomize=false"/><span>Tất cả công cụ</span></label>
+                <label class="tgl"><input type="radio" :checked="inviteCustomize" @change="openInviteCustomize()"/><span>Tùy chỉnh</span></label>
+                <label class="tgl"><input type="checkbox" v-model="inviteLocalRun"/><span>Cho phép chạy local</span></label>
               </div>
               <div v-if="inviteCustomize" style="max-width:560px;margin-bottom:8px">
-                <div class="sub" style="font-size:12px;margin-bottom:4px">Tools this member may use (all checked by default — uncheck to withhold):</div>
-                <div v-if="!tools.length" class="muted" style="font-size:12px">No tools registered yet.</div>
+                <div class="sub" style="font-size:12px;margin-bottom:4px">Công cụ thành viên này được phép dùng:</div>
+                <div v-if="!tools.length" class="muted" style="font-size:12px">Chưa có công cụ nào.</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
                   <label v-for="n in accessNames" :key="n" class="tgl" style="min-width:150px"><input type="checkbox" v-model="inviteToolSel[n]"/><span>{{n}}</span></label>
                 </div>
               </div>
               <div v-if="lastInvite" class="tut-notice" style="max-width:560px">
-                Invite sent to <b>{{lastInvite.email}}</b> ({{lastInvite.role}}). They can sign in and accept it code-free - or use this one-time code:
-                <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><code class="mono" style="word-break:break-all;font-size:11px">{{lastInvite.code}}</code><button class="btn sm" @click="copy(lastInvite.code)">{{copied?'✓ copied':'⧉ copy'}}</button></div>
+                Lời mời đã gửi tới <b>{{lastInvite.email}}</b> ({{lastInvite.role}}). Họ có thể đăng nhập để chấp nhận ngay - hoặc dùng mã một lần này:
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><code class="mono" style="word-break:break-all;font-size:11px">{{lastInvite.code}}</code><button class="btn sm" @click="copy(lastInvite.code)">{{copied?'✓ đã chép':'⧉ sao chép'}}</button></div>
               </div>
 
-              <div class="lbl" style="margin-top:18px">Pending invites</div>
+              <div class="lbl" style="margin-top:18px">Lời mời đang chờ</div>
               <table v-if="orgInvites.length">
-                <tr><th>Email</th><th>Role</th><th>Invited by</th><th>Expires</th><th></th></tr>
+                <tr><th>Email</th><th>Vai trò</th><th>Người mời</th><th>Hết hạn</th><th></th></tr>
                 <tr v-for="inv in orgInvites" :key="inv.id">
                   <td>{{inv.email}}</td><td><span class="role" :class="inv.role">{{inv.role}}</span></td>
-                  <td class="muted">{{short(inv.invited_by)}}</td><td class="muted">{{inv.expires_at?until(inv.expires_at):'never'}}</td>
-                  <td style="text-align:right"><button class="btn sm" @click="revokeInvite(inv)">Revoke</button></td>
+                  <td class="muted">{{short(inv.invited_by)}}</td><td class="muted">{{inv.expires_at?until(inv.expires_at):'không bao giờ'}}</td>
+                  <td style="text-align:right"><button class="btn sm" @click="revokeInvite(inv)">Thu hồi</button></td>
                 </tr>
               </table>
-              <p v-else class="sub">No pending invites.</p>
+              <p v-else class="sub">Không có lời mời nào đang chờ.</p>
               </div>
               </template>
             </template>
 
             <!-- API KEYS tab. Members see their own keys; admins see the full team inventory. -->
             <template v-if="orgTab==='keys'">
-              <div class="tut-head" style="align-items:flex-end;margin-bottom:14px"><div><div class="lbl">API Keys</div>
-                <p class="sub" style="margin:2px 0 0">Use more than one key without making a new team member. Permissions, limits, and billing stay with the assigned identity.</p></div></div>
+              <div class="tut-head" style="align-items:flex-end;margin-bottom:14px"><div><div class="lbl">Khóa API</div>
+                <p class="sub" style="margin:2px 0 0">Sử dụng nhiều khóa mà không cần tạo thêm thành viên. Phân quyền, hạn mức và thanh toán vẫn gắn liền với danh tính tương ứng.</p></div></div>
               <div v-if="keyErr" class="banner">{{keyErr}}</div>
               <div v-if="keyMsg" class="tut-notice" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-                <span>{{keyMsg.text}}</span><span style="white-space:nowrap"><button v-if="keyMsg.agent" class="btn sm" @click="orgTab='members'; keyMsg=null">Open Members</button><button class="btn sm ico" @click="keyMsg=null" aria-label="Dismiss">✕</button></span>
+                <span>{{keyMsg.text}}</span><span style="white-space:nowrap"><button v-if="keyMsg.agent" class="btn sm" @click="orgTab='members'; keyMsg=null">Mở Thành viên</button><button class="btn sm ico" @click="keyMsg=null" aria-label="Đóng">✕</button></span>
               </div>
               <div v-if="newApiKey" class="card" style="border-color:var(--accent);margin-bottom:16px">
-                <div class="lbl"><template v-if="newApiKey.kind==='default_human'">Default key rotated — copy the new key</template><template v-else-if="newApiKey.assigned_type==='agent'">New key for {{newApiKey.assigned_name}}</template><template v-else>{{newApiKey.name}} — copy it now</template></div>
-                <p v-if="newApiKey.kind==='default_human'" class="tut-notice" style="margin:2px 0 10px"><b>The previous key stopped working immediately.</b> Update every CLI, MCP installation, or other client using this team's Default key.</p>
-                <p v-if="newApiKey.assigned_type==='agent' && newApiKey.rotated" class="tut-notice" style="margin:2px 0 10px"><b>The previous key stopped working immediately and is now hidden from this list.</b> Update {{newApiKey.assigned_name}} everywhere it runs before closing this card.</p>
-                <p class="sub" style="margin:2px 0 10px"><template v-if="newApiKey.kind==='default_human'">This team-specific key remains revealable on Getting Started.</template><template v-else>The server stores only its hash. Save the full key before closing this card or browser tab.<template v-if="newApiKey.assigned_type==='agent'"> Anyone holding it can act as {{newApiKey.assigned_name}}, so keep it in an environment variable or secret manager — never commit or share it.</template></template></p>
-                <div class="field"><input :value="newApiKey.secret" readonly class="mono" @focus="$event.target.select()"/><button class="btn primary" @click="copy(newApiKey.secret,'managedkey')">{{copied==='managedkey'?'Copied':'Copy'}}</button><button class="btn" @click="dismissCredentialIssue">{{newApiKey.assigned_type==='agent'?'I’ve updated '+newApiKey.assigned_name:'Done'}}</button></div>
-                <p v-if="newApiKey.kind==='default_human'" class="sub" style="margin:6px 0 0;font-size:11.5px">CLI users can run <code>treg login</code> again to save the new key. Update MCP and other clients manually.</p>
+                <div class="lbl"><template v-if="newApiKey.kind==='default_human'">Khóa mặc định đã đổi — hãy sao chép khóa mới</template><template v-else-if="newApiKey.assigned_type==='agent'">Khóa mới cho {{newApiKey.assigned_name}}</template><template v-else>{{newApiKey.name}} — hãy sao chép ngay</template></div>
+                <p v-if="newApiKey.kind==='default_human'" class="tut-notice" style="margin:2px 0 10px"><b>Khóa trước đó đã ngừng hoạt động ngay lập tức.</b> Hãy cập nhật mọi CLI, MCP server hoặc ứng dụng đang dùng khóa Mặc định của đội ngũ này.</p>
+                <p v-if="newApiKey.assigned_type==='agent' && newApiKey.rotated" class="tut-notice" style="margin:2px 0 10px"><b>Khóa trước đó đã ngừng hoạt động ngay lập tức và bị ẩn khỏi danh sách.</b> Hãy cập nhật {{newApiKey.assigned_name}} ở mọi nơi đang chạy trước khi đóng thẻ này.</p>
+                <p class="sub" style="margin:2px 0 10px"><template v-if="newApiKey.kind==='default_human'">Khóa này có thể xem lại tại trang Bắt đầu.</template><template v-else>Máy chủ chỉ lưu mã băm của khóa. Hãy lưu lại khóa trước khi đóng thẻ này hoặc tab trình duyệt.<template v-if="newApiKey.assigned_type==='agent'"> Bất kỳ ai giữ khóa này đều có thể đại diện cho {{newApiKey.assigned_name}}, hãy lưu trong biến môi trường hoặc trình quản lý bí mật.</template></template></p>
+                <div class="field"><input :value="newApiKey.secret" readonly class="mono" @focus="$event.target.select()"/><button class="btn primary" @click="copy(newApiKey.secret,'managedkey')">{{copied==='managedkey'?'Đã chép':'Sao chép'}}</button><button class="btn" @click="dismissCredentialIssue">{{newApiKey.assigned_type==='agent'?'Đã cập nhật '+newApiKey.assigned_name:'Xong'}}</button></div>
+                <p v-if="newApiKey.kind==='default_human'" class="sub" style="margin:6px 0 0;font-size:11.5px">Người dùng CLI có thể chạy <code>treg login</code> để tự lưu khóa mới.</p>
                 <template v-if="newApiKey.assigned_type==='agent'">
-                  <p class="sub" style="margin:6px 0 0"><span v-if="agentConnected" class="chip ok">✓ connected — {{newApiKey.assigned_name}} called in as itself</span><span v-else class="muted">waiting for its first check-in…</span></p>
-                  <div class="tabs" style="margin:14px 0 8px"><button :class="{active:agentSnip==='prompt'}" @click="agentSnip='prompt'">Give it to your agent</button><button :class="{active:agentSnip==='env'}" @click="agentSnip='env'">Environment</button></div>
-                  <div class="lc-codewrap"><button class="lc-cp" @click="copy(agentSnippet,'agentsnip')">{{copied==='agentsnip'?'✓ copied':'copy'}}</button><pre style="max-height:220px;overflow:auto">{{agentSnippet}}</pre></div>
-                  <p class="sub" style="margin:6px 0 0;font-size:11.5px">Replace <code>TREG_TOKEN</code> in every environment, CI secret, secret manager, or agent config where {{newApiKey.assigned_name}} runs.</p>
+                  <p class="sub" style="margin:6px 0 0"><span v-if="agentConnected" class="chip ok">✓ đã kết nối — {{newApiKey.assigned_name}} đã gọi thành công</span><span v-else class="muted">đang chờ lượt kết nối đầu tiên…</span></p>
+                  <div class="tabs" style="margin:14px 0 8px"><button :class="{active:agentSnip==='prompt'}" @click="agentSnip='prompt'">Gửi cho Agent của bạn</button><button :class="{active:agentSnip==='env'}" @click="agentSnip='env'">Biến môi trường (.env)</button></div>
+                  <div class="lc-codewrap"><button class="lc-cp" @click="copy(agentSnippet,'agentsnip')">{{copied==='agentsnip'?'✓ đã chép':'sao chép'}}</button><pre style="max-height:220px;overflow:auto">{{agentSnippet}}</pre></div>
+                  <p class="sub" style="margin:6px 0 0;font-size:11.5px">Thay thế <code>TREG_TOKEN</code> ở mọi môi trường, CI secret hoặc cấu hình nơi {{newApiKey.assigned_name}} đang chạy.</p>
                 </template>
               </div>
-              <div v-if="activeRole!=='viewer'" class="field" style="max-width:620px;margin-bottom:18px"><input v-model="keyName" :class="{'field-invalid':keyNameInvalid}" :aria-invalid="keyNameInvalid" placeholder="New key name" maxlength="80" @input="keyNameInvalid=false" @keyup.enter="createApiKey"/><button class="btn primary" :disabled="keyBusy||!!credentialIssue" @click="createApiKey">{{keyBusy?'…':'Create key'}}</button></div>
+              <div v-if="activeRole!=='viewer'" class="field" style="max-width:620px;margin-bottom:18px"><input v-model="keyName" :class="{'field-invalid':keyNameInvalid}" :aria-invalid="keyNameInvalid" placeholder="Tên khóa mới" maxlength="80" @input="keyNameInvalid=false" @keyup.enter="createApiKey"/><button class="btn primary" :disabled="keyBusy||!!credentialIssue" @click="createApiKey">{{keyBusy?'…':'Tạo khóa'}}</button></div>
               <template v-for="group in apiKeyGroups" :key="group.identity">
                 <div class="lbl" style="margin-top:16px">{{group.name}} <span class="chip">{{group.type}}</span><span v-if="group.type==='agent' && group.name!==group.identity" class="muted mono" style="margin-left:8px;text-transform:none">{{group.identity}}</span></div>
-                <table class="key-table"><tr><th>Key</th><th>Status</th><th style="text-align:right" title="Billed charges in the last 30 days (UTC), from the ledger">Spent last 30 days</th><th>Created</th><th>Last used</th><th></th></tr>
+                <table class="key-table"><tr><th>Khóa</th><th>Trạng thái</th><th style="text-align:right" title="Chi phí phát sinh trong 30 ngày qua (UTC), từ sổ cái">Chi tiêu 30 ngày</th><th>Ngày tạo</th><th>Dùng gần nhất</th><th></th></tr>
                   <tr v-for="k in group.rows" :key="k.id">
                     <td class="key-identity"><input v-if="editKey===k.id" v-model="editKeyName" maxlength="80" class="msel" @keyup.enter="renameApiKey(k)"/><template v-else><div class="key-primary"><span v-if="group.type==='human' && k.assigned_type==='agent'" class="muted" aria-hidden="true">↳</span><b>{{group.type==='human' && k.assigned_type==='agent'?k.assigned_name:k.name}}</b><span class="chip">{{keyKind(k.kind)}}</span></div><div class="key-meta mono">{{maskedKey(k)}}</div></template>
                     </td>
                     <td><span class="badge" :class="k.state==='active'?'ok':'invalid'">{{k.state}}</span></td>
-                    <td class="key-spend"><Money v-if="keySpend(k)" :micro="keySpend(k).spent_micro" /><span v-else-if="apiKeySpend && !apiKeySpend.ready" class="muted" title="Spend history is being prepared. It will appear here within a few days.">Preparing…</span><span v-else class="muted">—</span></td>
-                    <td class="muted">{{k.created_at?when(k.created_at):'Unknown'}}</td><td class="muted">{{k.last_used_at?when(k.last_used_at):'Never'}}</td>
-                    <td style="text-align:right;white-space:nowrap"><span v-if="editKey===k.id" class="row-actions"><button class="btn sm primary" @click="renameApiKey(k)">Save</button><button class="btn sm" @click="editKey=null">Cancel</button></span><span v-else class="row-actions">
-                      <button class="btn sm" @click="showKeyActivity(k)">Activity</button><button v-if="k.can_rotate" class="btn sm" :disabled="!!credentialIssue" @click="requestKeyAction(k,'rotate')">Rotate</button><button v-if="keyHasMore(k)" class="btn sm ico" aria-haspopup="menu" :aria-expanded="keyMenu&&keyMenu.key.id===k.id" :aria-label="'More actions for '+k.name" @click.stop="toggleKeyMenu(k,$event)">⋮</button>
+                    <td class="key-spend"><Money v-if="keySpend(k)" :micro="keySpend(k).spent_micro" /><span v-else-if="apiKeySpend && !apiKeySpend.ready" class="muted" title="Lịch sử chi tiêu đang được tổng hợp.">Đang tổng hợp…</span><span v-else class="muted">—</span></td>
+                    <td class="muted">{{k.created_at?when(k.created_at):'Không rõ'}}</td><td class="muted">{{k.last_used_at?when(k.last_used_at):'Chưa từng'}}</td>
+                    <td style="text-align:right;white-space:nowrap"><span v-if="editKey===k.id" class="row-actions"><button class="btn sm primary" @click="renameApiKey(k)">Lưu</button><button class="btn sm" @click="editKey=null">Hủy</button></span><span v-else class="row-actions">
+                      <button class="btn sm" @click="showKeyActivity(k)">Hoạt động</button><button v-if="k.can_rotate" class="btn sm" :disabled="!!credentialIssue" @click="requestKeyAction(k,'rotate')">Đổi khóa</button><button v-if="keyHasMore(k)" class="btn sm ico" aria-haspopup="menu" :aria-expanded="keyMenu&&keyMenu.key.id===k.id" :aria-label="'Thao tác khác cho '+k.name" @click.stop="toggleKeyMenu(k,$event)">⋮</button>
                     </span></td>
                   </tr>
                 </table>
               </template>
               <template v-if="apiKeySpend && apiKeySpend.ready && apiKeySpend.unattributed && apiKeySpend.unattributed.spent_micro && apiKeys.length">
                 <div class="lbl" style="margin-top:16px">{{NO_KEY.title}} <InfoTip :title="NO_KEY.title" :text="NO_KEY.text" /></div>
-                <table class="key-table"><tr><td class="key-identity"><span class="muted">Charges on calls made without an API key</span></td><td class="key-spend"><Money :micro="apiKeySpend.unattributed.spent_micro" /></td></tr></table>
+                <table class="key-table"><tr><td class="key-identity"><span class="muted">Chi phí từ các lượt gọi không gắn khóa API</span></td><td class="key-spend"><Money :micro="apiKeySpend.unattributed.spent_micro" /></td></tr></table>
               </template>
-              <p v-if="apiKeySpend && !apiKeySpend.ready && apiKeys.length" class="sub">Spend history is being prepared. It will appear here within a few days.</p>
-              <p v-if="!keyBusy && !apiKeys.length" class="sub">No keys are available.</p>
+              <p v-if="apiKeySpend && !apiKeySpend.ready && apiKeys.length" class="sub">Lịch sử chi tiêu đang được chuẩn bị. Dữ liệu sẽ hiển thị trong thời gian tới.</p>
+              <p v-if="!keyBusy && !apiKeys.length" class="sub">Chưa có khóa API nào.</p>
             </template>
 
             <!-- BILLING. Balance + top-ups + auto top-up for the ACTIVE team. Admin-gated like the
@@ -509,40 +507,40 @@ export default {
             </template>
 
             <template v-if="canAdmin && orgTab==='projects'">
-              <div class="lbl" style="margin-top:14px">Projects</div>
-              <p class="sub" style="margin:-2px 0 8px;font-size:12px">A project groups tools inside this team, so a member or agent can be scoped to just part of it. A tool with no project stays visible to everyone. Secrets stay team-level — one shared credential can back tools in several projects; scope who <i>uses</i> them via member access.</p>
+              <div class="lbl" style="margin-top:14px">Dự án</div>
+              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Dự án giúp gom nhóm công cụ trong đội ngũ, cho phép giới hạn quyền hạn của thành viên hoặc Agent theo từng dự án cụ thể. Công cụ không gán dự án sẽ hiển thị cho tất cả mọi người.</p>
               <div class="field" style="max-width:560px">
-                <input v-model="projectName" placeholder="Apollo" @keyup.enter="createProject"/>
-                <button class="btn primary" @click="createProject" :disabled="projBusy">{{projBusy?'…':'Add project'}}</button>
+                <input v-model="projectName" placeholder="Tên dự án (vd: Apollo)" @keyup.enter="createProject"/>
+                <button class="btn primary" @click="createProject" :disabled="projBusy">{{projBusy?'…':'Thêm dự án'}}</button>
               </div>
-              <p v-if="!projects.length" class="muted" style="font-size:12px;margin-top:8px">No projects yet — every tool is team-wide.</p>
+              <p v-if="!projects.length" class="muted" style="font-size:12px;margin-top:8px">Chưa có dự án nào — mọi công cụ đều áp dụng toàn đội ngũ.</p>
               <table v-else style="margin-top:8px">
-                <tr><th>Project</th><th>Slug</th><th style="text-align:right">Tools</th><th></th></tr>
+                <tr><th>Dự án</th><th>Slug</th><th style="text-align:right">Công cụ</th><th></th></tr>
                 <template v-for="p in projects" :key="p.id">
                 <tr>
                   <td><b>{{p.name}}</b></td>
                   <td class="muted" style="font-family:var(--mono);font-size:12px">{{p.slug}}</td>
                   <td style="text-align:right">
-                    <button class="btn sm" :class="{active:editProj===p.id}" @click="openProjTools(p)">{{p.tool_count}} tool{{p.tool_count===1?'':'s'}} ▾</button>
+                    <button class="btn sm" :class="{active:editProj===p.id}" @click="openProjTools(p)">{{p.tool_count}} công cụ ▾</button>
                   </td>
                   <td style="text-align:right">
-                    <button class="btn sm" :class="{danger:confirmProj===p.id}" @click="deleteProject(p)" :title="'its '+p.tool_count+' tool(s) become team-wide — they are not deleted'">{{confirmProj===p.id?'Confirm delete':'Delete'}}</button>
+                    <button class="btn sm" :class="{danger:confirmProj===p.id}" @click="deleteProject(p)" :title="'các '+p.tool_count+' công cụ sẽ trở về dùng chung toàn đội ngũ'">{{confirmProj===p.id?'Xác nhận xóa':'Xóa'}}</button>
                   </td>
                 </tr>
                 <tr v-if="editProj===p.id">
                   <td colspan="4" style="background:color-mix(in srgb,var(--accent) 5%,transparent)">
                     <div style="padding:6px 2px">
-                      <div class="sub" style="margin-bottom:6px">Tools in <b>{{p.name}}</b> — check to add, uncheck to make team-wide again. Checking a tool that lives in another project moves it here.</div>
-                      <div v-if="!tools.length" class="muted" style="font-size:12px">No tools registered yet.</div>
+                      <div class="sub" style="margin-bottom:6px">Công cụ trong <b>{{p.name}}</b> — chọn để thêm, bỏ chọn để đưa về dùng chung toàn đội ngũ.</div>
+                      <div v-if="!tools.length" class="muted" style="font-size:12px">Chưa có công cụ nào.</div>
                       <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
                         <label v-for="t in tools" :key="t.id" class="tgl" style="min-width:190px">
                           <input type="checkbox" v-model="projToolDraft[t.id]"/><span>{{t.name}}</span>
-                          <span v-if="t.project_id && t.project_id!==p.id" class="chip" style="margin-left:4px" :title="'currently in '+projName(t.project_id)">{{projName(t.project_id)}}</span>
+                          <span v-if="t.project_id && t.project_id!==p.id" class="chip" style="margin-left:4px" :title="'hiện ở dự án '+projName(t.project_id)">{{projName(t.project_id)}}</span>
                         </label>
                       </div>
                       <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn sm primary" @click="saveProjTools(p)" :disabled="projToolBusy">{{projToolBusy?'…':'Save'}}</button>
-                        <button class="btn sm" @click="editProj=null">Cancel</button>
+                        <button class="btn sm primary" @click="saveProjTools(p)" :disabled="projToolBusy">{{projToolBusy?'…':'Lưu'}}</button>
+                        <button class="btn sm" @click="editProj=null">Hủy</button>
                       </div>
                     </div>
                   </td>
@@ -554,47 +552,46 @@ export default {
 
             <!-- POLICY tab -->
             <template v-if="canAdmin && orgTab==='policy'">
-              <div class="lbl" style="margin-top:14px">Policy</div>
-              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Block calls to a host, a path, or a method. Leave a field empty to mean <b>any</b>. Applies to the proxy and to runs — and to everyone, including owners.</p>
+              <div class="lbl" style="margin-top:14px">Chính sách chặn</div>
+              <p class="sub" style="margin:-2px 0 8px;font-size:12px">Chặn cuộc gọi tới host, đường dẫn hoặc phương thức HTTP nhất định. Để trống nghĩa là áp dụng cho tất cả. Áp dụng cho proxy và lượt chạy CLI — với mọi người, bao gồm cả chủ sở hữu.</p>
               <div class="field" style="max-width:720px;flex-wrap:wrap">
-                <input v-model="denyForm.host" placeholder="host (e.g. api.stripe.com)" style="min-width:190px"/>
-                <input v-model="denyForm.path_prefix" placeholder="path (e.g. /admin)" style="min-width:140px"/>
-                <select v-model="denyForm.method" class="msel"><option value="">any method</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
-                <select v-model="denyForm.user_id" class="msel" title="who it applies to">
-                  <option :value="null">whole team</option>
+                <input v-model="denyForm.host" placeholder="host (vd: api.stripe.com)" style="min-width:190px"/>
+                <input v-model="denyForm.path_prefix" placeholder="đường dẫn (vd: /admin)" style="min-width:140px"/>
+                <select v-model="denyForm.method" class="msel"><option value="">mọi phương thức</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
+                <select v-model="denyForm.user_id" class="msel" title="áp dụng cho ai">
+                  <option :value="null">toàn đội ngũ</option>
                   <option v-for="m in rosterMembers.filter(x=>!x.is_observed)" :key="m.user_id" :value="m.user_id">{{m.is_agent?('agent: '+(m.name||m.email)):m.email}}</option>
                 </select>
-                <select v-if="projects.length" v-model="denyForm.project_id" class="msel" title="which project's tools it applies to">
-                  <option :value="null">any project</option>
+                <select v-if="projects.length" v-model="denyForm.project_id" class="msel" title="áp dụng cho công cụ dự án nào">
+                  <option :value="null">mọi dự án</option>
                   <option v-for="p in projects" :key="p.id" :value="p.id">{{p.name}}</option>
                 </select>
-                <input v-model="denyForm.note" placeholder="why (shown in the refusal)" style="min-width:170px"/>
-                <button class="btn primary" @click="addDeny" :disabled="denyBusy">{{denyBusy?'…':'Block'}}</button>
+                <input v-model="denyForm.note" placeholder="lý do chặn (hiển thị khi từ chối)" style="min-width:170px"/>
+                <button class="btn primary" @click="addDeny" :disabled="denyBusy">{{denyBusy?'…':'Chặn'}}</button>
               </div>
-              <p v-if="!denyRules.length" class="muted" style="font-size:12px;margin-top:8px">No rules — nothing is blocked.</p>
+              <p v-if="!denyRules.length" class="muted" style="font-size:12px;margin-top:8px">Không có quy tắc nào — không có gì bị chặn.</p>
               <table v-else style="margin-top:8px">
-                <tr><th>Method</th><th>Host</th><th>Path</th><th>Applies to</th><th v-if="projects.length">Project</th><th>Note</th><th></th></tr>
+                <tr><th>Phương thức</th><th>Host</th><th>Đường dẫn</th><th>Áp dụng cho</th><th v-if="projects.length">Dự án</th><th>Ghi chú</th><th></th></tr>
                 <tr v-for="r in denyRules" :key="r.id">
-                  <td><span class="chip">{{r.method||'any'}}</span></td>
-                  <td style="font-family:var(--mono);font-size:12px">{{r.host||'any'}}</td>
-                  <td style="font-family:var(--mono);font-size:12px">{{r.path_prefix||'any'}}</td>
-                  <td>{{r.scope==='org'?'whole team':(denyWho(r.user_id))}}</td>
-                  <td v-if="projects.length">{{r.project_id?projName(r.project_id):'any'}}</td>
+                  <td><span class="chip">{{r.method||'mọi'}}</span></td>
+                  <td style="font-family:var(--mono);font-size:12px">{{r.host||'mọi'}}</td>
+                  <td style="font-family:var(--mono);font-size:12px">{{r.path_prefix||'mọi'}}</td>
+                  <td>{{r.scope==='org'?'toàn đội ngũ':(denyWho(r.user_id))}}</td>
+                  <td v-if="projects.length">{{r.project_id?projName(r.project_id):'mọi'}}</td>
                   <td class="muted" style="font-size:12px">{{r.note}}</td>
-                  <td style="text-align:right"><button class="btn sm" :class="{danger:confirmDeny===r.id}" @click="removeDeny(r)">{{confirmDeny===r.id?'Confirm remove':'Remove'}}</button></td>
+                  <td style="text-align:right"><button class="btn sm" :class="{danger:confirmDeny===r.id}" @click="removeDeny(r)">{{confirmDeny===r.id?'Xác nhận gỡ':'Gỡ bỏ'}}</button></td>
                 </tr>
               </table>
 
-              <!-- Tool-level argv blocks — the OTHER deny layer, surfaced read-only so the whole
-                   "what is blocked" picture lives on one screen. -->
+              <!-- Tool-level argv blocks -->
               <template v-if="cliDeny.length">
-                <div class="lbl" style="margin-top:22px">Per-tool CLI blocks <span class="chip" style="margin-left:6px">read-only</span></div>
-                <p class="sub" style="margin:-2px 0 8px;font-size:12px">treg blocks at three layers: the rules above (HTTP host/path/method, this team's policy), these per-tool argument patterns (from the skill's <span class="mono">treg.json</span> or the treg catalog — edit them there), and the OS sandbox around isolated local runs.</p>
+                <div class="lbl" style="margin-top:22px">Quy tắc chặn CLI theo công cụ <span class="chip" style="margin-left:6px">chỉ đọc</span></div>
+                <p class="sub" style="margin:-2px 0 8px;font-size:12px">treg chặn ở ba lớp: các quy tắc ở trên (HTTP host/path/method), các mẫu đối số CLI theo công cụ (từ treg.json của skill hoặc mặc định của catalog) và sandbox hệ điều hành.</p>
                 <table>
-                  <tr><th>Tool</th><th>Blocked argument patterns</th></tr>
+                  <tr><th>Công cụ</th><th>Mẫu đối số bị chặn</th></tr>
                   <tr v-for="t in cliDeny" :key="t.tool">
-                    <td><b>{{t.tool}}</b><span v-if="!t.enabled" class="chip" style="margin-left:6px" title="local runs for this tool are not enabled">off</span></td>
-                    <td><span v-for="pat in t.patterns" :key="pat.pattern" class="chip" style="margin:2px 6px 2px 0;font-family:var(--mono);font-size:11px" :title="pat.source==='skill'?'from this skill\'s treg.json':'from the treg catalog defaults'">{{pat.pattern}}<span class="muted" style="margin-left:4px">· {{pat.source}}</span></span></td>
+                    <td><b>{{t.tool}}</b><span v-if="!t.enabled" class="chip" style="margin-left:6px" title="chạy local cho công cụ này chưa bật">tắt</span></td>
+                    <td><span v-for="pat in t.patterns" :key="pat.pattern" class="chip" style="margin:2px 6px 2px 0;font-family:var(--mono);font-size:11px" :title="pat.source==='skill'?'từ treg.json của skill':'từ mặc định catalog'">{{pat.pattern}}<span class="muted" style="margin-left:4px">· {{pat.source}}</span></span></td>
                   </tr>
                 </table>
               </template>
@@ -615,98 +612,71 @@ export default {
                  NB the name: `orgSettings` is already a METHOD on this component (the ⚙ in the team
                  picker), and data and methods share one namespace. -->
             <div v-if="capCfg" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
-                  <span class="lbl" style="margin:0">Daily spend limit</span>
+                  <span class="lbl" style="margin:0">Hạn mức chi tiêu ngày</span>
                   <p class="sub" style="margin:4px 0 8px;font-size:12px">
-                    The most this team can spend per day on treg's keys. Resets at 00:00 UTC. None by
-                    default. Worth setting if agents run unattended with auto top-up on, since a
-                    balance that refills itself can't stop a runaway one.
+                    Số tiền tối đa đội ngũ có thể chi tiêu mỗi ngày cho các lượt gọi trên khóa treg. Làm mới lúc 00:00 UTC. Mặc định không giới hạn.
                   </p>
                   <div class="field" style="max-width:560px">
-                    <input v-model="capUsd" type="number" min="0" step="0.5" placeholder="no limit" style="max-width:140px"/>
-                    <button class="btn primary" :disabled="capBusy" @click="saveCap">{{capBusy?'…':'Save'}}</button>
+                    <input v-model="capUsd" type="number" min="0" step="0.5" placeholder="không giới hạn" style="max-width:140px"/>
+                    <button class="btn primary" :disabled="capBusy" @click="saveCap">{{capBusy?'…':'Lưu'}}</button>
                     <span class="sub" style="margin:0">
-                      USD/day · now {{capCfg.daily_cap_micro ? money(capCfg.daily_cap_micro) : 'no limit'}}<template v-if="!capCfg.daily_cap_set_by_team"> (our default)</template>
+                      USD/ngày · hiện tại {{capCfg.daily_cap_micro ? money(capCfg.daily_cap_micro) : 'không giới hạn'}}<template v-if="!capCfg.daily_cap_set_by_team"> (mặc định)</template>
                     </span>
                   </div>
                   <p v-if="capErr" class="banner" style="margin:10px 0 0">{{capErr}}</p>
                   <p class="muted" style="font-size:12px;margin-top:8px">
-                    Any amount, up or down. Leave it empty (or 0) for no daily limit — your balance is then the only bound.
+                    Bất kỳ mức nào. Để trống (hoặc 0) nghĩa là không giới hạn — khi đó số dư là trần duy nhất.
                   </p>
                 </div>
 
-                <!-- THE ARCHIVE. A team-level privacy setting (docs/context/architecture/archive.md,
-                     "Opting out"): off means no call is answered from or recorded into treg's archive.
-                     Erasing what was stored is a separate act (team deletion, or on request). -->
                 <div v-if="capCfg" style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
-                  <span class="lbl" style="margin:0">Archive</span>
+                  <span class="lbl" style="margin:0">Lưu trữ kết quả (Archive)</span>
                   <p class="sub" style="margin:4px 0 8px;font-size:12px">
-                    treg keeps answers to the exact questions your agents ask so a repeat can be served
-                    from storage: free on your own keys, at a reduced price on treg's. Turn it off and
-                    new calls skip that storage both ways: none is answered from it (so no repeat
-                    discount on treg's keys; your own keys stay free as always) and none is stored.
-                    Answers already stored are erased when the team is deleted, or on request through
-                    support. Call records and async-task completion evidence are kept as before.
+                    treg lưu kết quả của các lượt gọi chính xác mà Agent gửi để phục vụ lần gọi lặp lại từ bộ nhớ đệm: miễn phí khi dùng khóa riêng của bạn, giảm giá khi dùng khóa của treg. Tắt tùy chọn này sẽ bỏ qua lưu trữ cả hai chiều.
                   </p>
                   <div class="field" style="max-width:560px;align-items:center">
-                    <label class="tgl" :title="!canAdmin?'only a team admin can change this':(capCfg.archive?'archive on — click to opt out':'archive off — click to opt back in')">
+                    <label class="tgl" :title="!canAdmin?'chỉ quản trị viên mới có quyền đổi':(capCfg.archive?'lưu trữ đang bật — bấm để tắt':'lưu trữ đang tắt — bấm để bật')">
                       <input type="checkbox" :checked="capCfg.archive" :disabled="archiveBusy || !canAdmin" @change="setArchive($event.target.checked)"/>
-                      <span>{{capCfg.archive?'on':'off'}}</span>
+                      <span>{{capCfg.archive?'bật':'tắt'}}</span>
                     </label>
-                    <span v-if="!canAdmin" class="sub" style="margin:0">admins change this</span>
+                    <span v-if="!canAdmin" class="sub" style="margin:0">chỉ admin có quyền đổi</span>
                   </div>
                   <p v-if="archiveErr" class="banner" style="margin:10px 0 0">{{archiveErr}}</p>
                 </div>
 
-                <!-- PER-TAG BUDGETS. What a team reselling treg sets on ITS OWN customers. Only
-                     DECLARED dimensions are enforced on the call path, so the key is a picker over
-                     those rather than a free-text box — the API refuses a limit on anything else
-                     precisely because a stored-but-unenforced budget looks like protection and isn't. -->
                 <div v-if="capCfg" style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
-                  <span class="lbl" style="margin:0">Per-customer limits</span>
+                  <span class="lbl" style="margin:0">Hạn mức theo từng khách hàng (Tag Meta)</span>
                   <p class="sub" style="margin:4px 0 8px;font-size:12px">
-                    Cap or block one of your own customers by the tags your calls carry
-                    (<code>X-Treg-Meta</code>). Limits <b>stack</b> — a workspace ceiling and a
-                    per-customer ceiling both apply, and a refusal names which one hit. They are
-                    <b>advisory</b>: concurrent calls can overshoot slightly, and your balance is the
-                    hard limit.
+                    Giới hạn hoặc chặn một khách hàng cụ thể dựa trên tag mà cuộc gọi gửi kèm (<code>X-Treg-Meta</code>).
                   </p>
                   <div class="field" style="max-width:680px;flex-wrap:wrap">
-                    <!-- Every tag the team SENDS, not only the ones already budgeted. Setting a
-                         limit declares the dimension, so offering only the declared list made the
-                         common path a hidden two-step: you can see `feature` in Usage, so you expect
-                         to be able to cap it. -->
                     <select class="msel" v-model="budDim" style="max-width:160px">
                       <option v-for="k in budDims" :key="k" :value="k">{{k}}</option>
                     </select>
-                    <input v-model="budVal" placeholder="cust_8123 — blank = default for all" style="max-width:230px"/>
-                    <input v-model="budDaily" type="number" min="0" step="0.5" placeholder="USD/day" style="max-width:120px"/>
-                    <button class="btn primary" :disabled="budBusy" @click="saveBudget()">{{budBusy?'…':(budVal?'Set limit':'Set default')}}</button>
+                    <input v-model="budVal" placeholder="cust_8123 — để trống = mặc định cho tất cả" style="max-width:230px"/>
+                    <input v-model="budDaily" type="number" min="0" step="0.5" placeholder="USD/ngày" style="max-width:120px"/>
+                    <button class="btn primary" :disabled="budBusy" @click="saveBudget()">{{budBusy?'…':'Thiết lập'}}</button>
                   </div>
                   <p v-if="budErr" class="banner" style="margin:10px 0 0">{{budErr}}</p>
                   <template v-for="dim in (capCfg.budget_dims||[])" :key="dim">
                     <table style="margin-top:10px">
-                      <tr><th>{{dim}}</th><th style="text-align:right">Daily limit</th><th>Status</th><th></th></tr>
-                      <!-- The default first: everything under it is an exception to it. Rendered even
-                           when unset, so "no limit" is something you can SEE rather than infer from
-                           an empty table. -->
+                      <tr><th>{{dim}}</th><th style="text-align:right">Hạn mức ngày</th><th>Trạng thái</th><th></th></tr>
                       <tr>
-                        <td><b>every {{dim}}</b> <span class="muted">(default)</span></td>
-                        <td style="text-align:right">{{defaultFor(dim)?fmtCap(defaultFor(dim)):'no limit'}}</td>
+                        <td><b>mọi {{dim}}</b> <span class="muted">(mặc định)</span></td>
+                        <td style="text-align:right">{{defaultFor(dim)?fmtCap(defaultFor(dim)):'không giới hạn'}}</td>
                         <td><span class="muted">—</span></td>
-                        <td style="text-align:right"><button v-if="defaultFor(dim)" class="btn sm" @click="removeBudget(defaultFor(dim))">Clear</button></td>
+                        <td style="text-align:right"><button v-if="defaultFor(dim)" class="btn sm" @click="removeBudget(defaultFor(dim))">Xóa</button></td>
                       </tr>
                       <tr v-for="b in overridesFor(dim)" :key="b.val">
                         <td style="padding-left:22px"><span class="chip">{{b.val}}</span></td>
-                        <!-- EFFECTIVE, never a dash: an override with no cap really is unlimited, and
-                             showing "—" would hide that it is exempt from the default. -->
                         <td style="text-align:right">{{fmtCap(b)}}</td>
                         <td><span class="badge" :class="b.status==='blocked'?'invalid':'ok'">{{b.status}}</span></td>
                         <td style="text-align:right;white-space:nowrap">
-                          <button class="btn sm" @click="toggleBlock(b)">{{b.status==='blocked'?'Unblock':'Block'}}</button>
-                          <button class="btn sm" @click="removeBudget(b)">Remove</button>
+                          <button class="btn sm" @click="toggleBlock(b)">{{b.status==='blocked'?'Mở chặn':'Chặn'}}</button>
+                          <button class="btn sm" @click="removeBudget(b)">Gỡ bỏ</button>
                         </td>
                       </tr>
-                      <tr v-if="!overridesFor(dim).length"><td colspan="4" class="muted" style="font-size:12px">no exceptions — every {{dim}} follows the default</td></tr>
+                      <tr v-if="!overridesFor(dim).length"><td colspan="4" class="muted" style="font-size:12px">không có ngoại lệ — mọi {{dim}} đều tuân theo mặc định</td></tr>
                     </table>
                   </template>
                 </div>
@@ -714,36 +684,33 @@ export default {
 
             <TeamAvatar v-if="canAdmin" />
 
-            <!-- TEAM NAME + SLUG. Admin+. The old slug stays an alias server-side, so copied keys,
-                 ~/.treg and MCP pins keep working; the CLI just needs `treg org use <new-slug>`. -->
             <div v-if="canAdmin && !isPersonal(activeOrg)" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
-              <span class="lbl" style="margin:0">Team name and slug</span>
+              <span class="lbl" style="margin:0">Tên đội ngũ và đường dẫn (slug)</span>
               <p class="sub" style="margin:4px 0 8px;font-size:12px">
-                The slug is the team's id in <code>X-Treg-Org</code>, <code>treg org use</code> and MCP. Changing it
-                keeps existing keys working; run <code>treg org use {{renameSlug.trim()||activeSlugNow}}</code> to re-pin the CLI.
+                Slug là định danh của đội ngũ trong header <code>X-Treg-Org</code>, lệnh <code>treg org use</code> và MCP.
               </p>
               <div class="field" style="max-width:560px">
-                <input v-model="renameName" placeholder="team name" maxlength="80" style="max-width:220px"/>
+                <input v-model="renameName" placeholder="tên đội ngũ" maxlength="80" style="max-width:220px"/>
                 <input v-model="renameSlug" placeholder="slug" maxlength="40" style="max-width:180px"/>
-                <button class="btn primary" :disabled="renameBusy || !renameDirty" @click="renameOrg">{{renameBusy?'…':'Save'}}</button>
+                <button class="btn primary" :disabled="renameBusy || !renameDirty" @click="renameOrg">{{renameBusy?'…':'Lưu'}}</button>
               </div>
               <p v-if="renameErr" class="sub" style="color:var(--red);margin:4px 0 0;font-size:12px">{{renameErr}}</p>
             </div>
 
             <template v-if="!isPersonal(activeOrg)">
-            <div class="lbl" style="margin-top:14px;color:var(--red)">Danger zone</div>
+            <div class="lbl" style="margin-top:14px;color:var(--red)">Vùng nguy hiểm</div>
             <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start">
               <div>
-                <button class="btn sm" :class="{danger:confirmLeave}" @click="leaveOrg">{{confirmLeave?'Confirm leave':'Leave org'}}</button>
-                <a v-if="confirmLeave" href="#" @click.prevent="confirmLeave=false" class="sub" style="margin-left:8px;font-size:12px">cancel</a>
+                <button class="btn sm" :class="{danger:confirmLeave}" @click="leaveOrg">{{confirmLeave?'Xác nhận rời':'Rời đội ngũ'}}</button>
+                <a v-if="confirmLeave" href="#" @click.prevent="confirmLeave=false" class="sub" style="margin-left:8px;font-size:12px">hủy</a>
               </div>
               <div v-if="isOwner" class="field" style="margin:0">
-                <input v-model="confirmDel" :placeholder="'type '+activeSlugNow+' to delete'" style="min-width:230px"/>
-                <button class="btn sm danger" :disabled="confirmDel!==activeSlugNow" @click="deleteOrg">Delete org</button>
+                <input v-model="confirmDel" :placeholder="'nhập '+activeSlugNow+' để xóa'" style="min-width:230px"/>
+                <button class="btn sm danger" :disabled="confirmDel!==activeSlugNow" @click="deleteOrg">Xóa đội ngũ</button>
               </div>
             </div>
             </template>
-            <p v-else class="sub" style="margin-top:14px;font-size:12px">A personal team cannot be left or deleted. Create or join other teams from the picker at the top of the page.</p>
+            <p v-else class="sub" style="margin-top:14px;font-size:12px">Đội ngũ cá nhân không thể rời khỏi hoặc xóa. Tạo hoặc tham gia đội ngũ khác từ thanh chọn ở đầu trang.</p>
             </template>
           </div>
 

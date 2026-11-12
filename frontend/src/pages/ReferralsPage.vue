@@ -11,97 +11,73 @@ export default { setup: useDashboard }
                cash tier is hand-approved on purpose — hand-approval IS the anti-gaming design
                (money.md §Referrals) — so it is a form, not a self-serve toggle, and it shows to
                everyone, team or not, so a partner without a team yet can still apply. -->
-          <h1>{{refTab==='partner' ? 'Affiliate partner' : 'Refer a friend'}}</h1>
-          <p class="sub" v-if="refTab==='partner'">Revenue share, paid in cash. By invitation.</p>
-          <p class="sub" v-else :style="ref.loaded ? null : {visibility:'hidden'}">They get {{money(ref.terms.referred_micro)}} when they add
-            {{money(ref.terms.min_topup_micro)}}. You get {{money(ref.terms.referrer_micro)}},
-            {{ref.terms.hold_days}} days later.</p>
+          <h1>{{refTab==='partner' ? 'Đối tác liên kết (Affiliate)' : 'Giới thiệu bạn bè'}}</h1>
+          <p class="sub" v-if="refTab==='partner'">Chia sẻ doanh thu, thanh toán bằng tiền mặt. Theo lời mời đặc biệt.</p>
+          <p class="sub" v-else :style="ref.loaded ? null : {visibility:'hidden'}">Bạn bè nhận {{money(ref.terms.referred_micro)}} khi nạp từ
+            {{money(ref.terms.min_topup_micro)}}. Bạn nhận {{money(ref.terms.referrer_micro)}},
+            sau {{ref.terms.hold_days}} ngày.</p>
           <div class="tabs" style="max-width:720px">
-            <button :class="{active:refTab==='friend'}" @click="refTab='friend'">Refer a friend</button>
-            <button :class="{active:refTab==='partner'}" @click="refTab='partner'">Affiliate partner</button>
+            <button :class="{active:refTab==='friend'}" @click="refTab='friend'">Giới thiệu bạn bè</button>
+            <button :class="{active:refTab==='partner'}" @click="refTab='partner'">Đối tác liên kết</button>
           </div>
           <div v-if="refTab==='partner'" style="max-width:720px">
             <div class="card">
-              <div class="lbl">Who it's for</div>
-              <p class="sub" style="margin:6px 0 0">People who send real volume: an audience, a newsletter,
-                a community, or a team that builds on treg for clients.</p>
-              <div class="lbl" style="margin-top:16px">What you earn</div>
-              <p class="sub" style="margin:6px 0 0">A share of what your referrals top up, paid to you in
-                cash monthly. Not credit, and no {{ref.cap.standard_limit ?? ref.cap.limit}}-referral cap.</p>
-              <div class="lbl" style="margin-top:16px">How to get in</div>
-              <p class="sub" style="margin:6px 0 14px">Invite only. Tell us about your audience and how
-                you'd send people to treg, and we'll get back to you.</p>
+              <div class="lbl">Dành cho ai</div>
+              <p class="sub" style="margin:6px 0 0">Những người hoặc tổ chức có lượng người tiếp cận lớn: cộng đồng, bản tin newsletter, nhóm nhà phát triển hoặc agency triển khai giải pháp AI cho khách hàng.</p>
+              <div class="lbl" style="margin-top:16px">Quyền lợi bạn nhận được</div>
+              <p class="sub" style="margin:6px 0 0">Tỷ lệ chia sẻ doanh thu từ các khoản nạp tiền của người bạn giới thiệu, thanh toán trực tiếp bằng tiền mặt hàng tháng. Không giới hạn số lượng người giới thiệu.</p>
+              <div class="lbl" style="margin-top:16px">Cách thức tham gia</div>
+              <p class="sub" style="margin:6px 0 14px">Theo lời mời riêng. Hãy chia sẻ với chúng tôi về cộng đồng của bạn và cách bạn dự định giới thiệu mọi người đến với treg, chúng tôi sẽ liên hệ lại sớm nhất.</p>
               <a class="btn primary sm" href="https://forms.gle/5N3DyVPrNJkrGuxF6" target="_blank"
-                 rel="noopener" @click="track('affiliate_apply_clicked')" style="text-decoration:none">Apply to be an affiliate partner</a>
+                 rel="noopener" @click="track('affiliate_apply_clicked')" style="text-decoration:none">Đăng ký làm đối tác liên kết</a>
             </div>
-            <p class="sub" style="margin:12px 0 0">Just want to tell a friend? The
-              <a href="#" @click.prevent="refTab='friend'">refer-a-friend</a> program pays
-              {{money(ref.terms.referrer_micro)}} in credit per friend, no application needed.</p>
+            <p class="sub" style="margin:12px 0 0">Bạn chỉ muốn giới thiệu cho bạn bè? Chương trình
+              <a href="#" @click.prevent="refTab='friend'">giới thiệu bạn bè</a> tặng
+              {{money(ref.terms.referrer_micro)}} tín dụng cho mỗi người bạn, không cần qua đơn đăng ký.</p>
           </div>
 
           <template v-if="refTab==='friend'">
 
-          <p v-if="ref.loading" class="sub">Loading…</p>
-          <!-- ONE column for the whole view. The children carry no max-width of their own: three
-               different ones is what made the card, the tiles and the table start and end at three
-               different x-positions. -->
+          <p v-if="ref.loading" class="sub">Đang tải…</p>
           <div v-else style="max-width:720px">
-            <!-- Everyone with a team gets a link — including free-tier users, who on a product
-                 pitched as "$1.00 free, no card" are most users and the likeliest to tell a friend.
-                 This branch is now only the degenerate case (no team to pay the reward into), kept
-                 because the reward has to land SOMEWHERE and a silent zero is the worst version. -->
             <div v-if="!ref.eligible" class="card" style="margin-top:14px">
-              <div class="lbl">Create a team to unlock your link</div>
-              <p class="sub" style="margin:6px 0 12px">Referral rewards are paid as credit into a
-                team you own, so you'll need one first.</p>
-              <button class="btn primary sm" @click="go('orgs')">Go to teams</button>
+              <div class="lbl">Tạo một đội ngũ để mở khóa liên kết giới thiệu</div>
+              <p class="sub" style="margin:6px 0 12px">Phần thưởng giới thiệu được trả dưới dạng tín dụng vào đội ngũ mà bạn sở hữu, vì vậy bạn cần có một đội ngũ trước tiên.</p>
+              <button class="btn primary sm" @click="go('orgs')">Đi đến quản lý đội ngũ</button>
             </div>
 
             <template v-else>
               <div class="card" style="margin-top:14px">
-                <div class="lbl">Your link</div>
+                <div class="lbl">Liên kết giới thiệu của bạn</div>
                 <div style="display:flex;gap:8px;margin-top:8px">
                   <input readonly :value="ref.link" @focus="$event.target.select()"
                          style="flex:1;min-width:0;font-family:var(--mono);font-size:12px">
-                  <button class="btn sm" @click="copyRefLink" style="flex:none">{{refCopied?'Copied':'Copy'}}</button>
+                  <button class="btn sm" @click="copyRefLink" style="flex:none">{{refCopied?'Đã chép':'Sao chép'}}</button>
                 </div>
                 <p class="sub" style="margin:10px 0 0" v-if="ref.credit_org">
-                  Your reward lands in <b>{{ref.credit_org.name}}</b>.</p>
+                  Phần thưởng của bạn sẽ được cộng vào đội ngũ <b>{{ref.credit_org.name}}</b>.</p>
               </div>
 
-              <!-- `.stat` expects `.n` (the figure) then `.l` (the label), in that order — any other
-                   class names render as unstyled text, which is exactly what a hand-rolled k/v pair
-                   did here. -->
-              <!-- auto-FIT, not the sheet's auto-fill: at this width auto-fill lays out four 150px
-                   tracks and leaves the fourth empty, so three tiles stop short of the column's
-                   right edge while the card above and the table below reach it. auto-fit collapses
-                   the empty track and the three stretch to fill. -->
               <div class="statgrid" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-                <div class="stat"><div class="n">{{ref.totals.signed_up}}</div><div class="l">signed up</div></div>
-                <div class="stat"><div class="n">{{ref.totals.topped_up}}</div><div class="l">topped up</div></div>
-                <div class="stat"><div class="n">{{money(ref.totals.earned_micro)}}</div><div class="l">earned</div></div>
+                <div class="stat"><div class="n">{{ref.totals.signed_up}}</div><div class="l">đã đăng ký</div></div>
+                <div class="stat"><div class="n">{{ref.totals.topped_up}}</div><div class="l">đã nạp tiền</div></div>
+                <div class="stat"><div class="n">{{money(ref.totals.earned_micro)}}</div><div class="l">đã nhận thưởng</div></div>
               </div>
               <p v-if="ref.totals.pending_micro" class="sub" style="margin:-8px 0 0">
-                {{money(ref.totals.pending_micro)}} on the way — rewards land
-                {{ref.terms.hold_days}} days after your friend adds funds.</p>
+                {{money(ref.totals.pending_micro)}} đang xử lý — phần thưởng sẽ mở khóa sau
+                {{ref.terms.hold_days}} ngày kể từ khi bạn bè của bạn nạp tiền.</p>
 
-              <!-- The cap refusal IS the commercial conversation, same posture as a daily-cap
-                   refusal: it names the limit and points at a human rather than silently paying 0. -->
               <div v-if="ref.cap.limit != null && ref.cap.paid >= ref.cap.limit" class="card"
                    style="margin-top:14px;border-color:var(--accent)">
-                <div class="lbl">You've hit the {{ref.cap.limit}}-referral limit</div>
-                <p class="sub" style="margin:6px 0 0">That's as far as the self-serve program goes.
-                  If you're sending real volume, switch to the Affiliate partner tab above — we pay affiliate partners in cash.</p>
+                <div class="lbl">Bạn đã đạt giới hạn {{ref.cap.limit}} lượt giới thiệu</div>
+                <p class="sub" style="margin:6px 0 0">Đó là mức tối đa của chương trình tự phục vụ thông thường. Nếu bạn có lượng người dùng lớn, hãy chuyển sang tab Đối tác liên kết ở trên — chúng tôi chi trả hoa hồng bằng tiền mặt.</p>
               </div>
 
-              <div class="grp" style="margin:20px 0 8px">Your referrals</div>
+              <div class="grp" style="margin:20px 0 8px">Danh sách bạn bè đã giới thiệu</div>
               <p v-if="!ref.referrals.length" class="sub" style="margin:0">
-                Nobody yet. Share your link above.</p>
-              <!-- House-style table: bare `<table>` is ALREADY a card (background, border, radius)
-                   and `th,td` already carry 10px/13px padding. Overriding that padding to `8px 0`
-                   is what pushed the amount flush against the card's own right edge. -->
+                Chưa có ai. Hãy chia sẻ liên kết của bạn ở trên.</p>
               <table v-else>
-                <tr><th>Who</th><th>Signed up</th><th>Status</th><th style="text-align:right">Reward</th></tr>
+                <tr><th>Người dùng</th><th>Ngày đăng ký</th><th>Trạng thái</th><th style="text-align:right">Tiền thưởng</th></tr>
                 <tr v-for="(r,i) in ref.referrals" :key="i">
                   <td>{{r.email || '—'}}</td>
                   <td class="sub" style="white-space:nowrap">{{bhistDate(r.signed_up_at)}}</td>
