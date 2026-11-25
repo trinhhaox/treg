@@ -202,6 +202,7 @@ class CurrentIdentity:
     is_superadmin: bool
     onboarded: bool
     github: bool
+    phone: str | None = None
     org_id: int | None = None
     org: str | None = None
     role: str | None = None
@@ -857,6 +858,7 @@ async def current_identity(x_treg_token: str, session_cookie: str) -> CurrentIde
             is_superadmin=user.is_superadmin,
             onboarded=user.onboarded,
             github=bool(get_settings().github_client_id),
+            phone=user.phone,
             org_id=org_id,
             org=org_slug,
             role=role,

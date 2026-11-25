@@ -24,6 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
       link.textContent = name === 'github' ? 'GitHub' : 'Google';
       decorate(link, name);
     }
+    fetch('/meta').then(r => r.json()).then(meta => {
+      if (!meta.github) {
+        modal.querySelectorAll('a[href="/auth/github"]').forEach(el => el.style.display = 'none');
+      }
+      if (!meta.google) {
+        modal.querySelectorAll('a[href="/auth/google"]').forEach(el => el.style.display = 'none');
+      }
+      if (!meta.sso) {
+        modal.querySelectorAll('button').forEach(btn => {
+          if (btn.textContent.includes('Company SSO') || btn.textContent.includes('Continue with SSO')) {
+            btn.style.display = 'none';
+          }
+        });
+      }
+    }).catch(() => {});
   };
   const discover = async (value) => {
     const response = await fetch('/auth/sso/discover', {

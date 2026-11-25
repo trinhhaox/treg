@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from .. import client_ip, crypto
+from ..timeutil import utcnow_naive as _utcnow_naive
 from ..application import auth as auth_use_cases
 from ..application import images
 from ..application import signup
@@ -744,7 +745,7 @@ async def auth_me(
         identity = await auth_use_cases.current_identity(x_treg_token, treg_session)
     except auth_use_cases.IdentityLookupError as exc:
         raise HTTPException(status_code=401, detail="no session") from exc
-    out = {"email": identity.email, "is_superadmin": identity.is_superadmin, "onboarded": identity.onboarded,
+    out = {"email": identity.email, "phone": identity.phone or "", "is_superadmin": identity.is_superadmin, "onboarded": identity.onboarded,
            "github": identity.github, "avatar_url": images.public_url(identity.avatar_key),
            "uploads": images.enabled()}
     if (ich := _intercom_user_hash(identity.email)):
@@ -1346,14 +1347,25 @@ async def auth_revoke_tokens(
     return resp
 
 
+from ..domain.identity.phone import clean_phone, get_phone_candidates, is_probable_phone
+
+
 class PasswordLoginIn(BaseModel):
-    email: str
+    account: str = ""
+    email: str = ""
+    phone: str = ""
     password: str
 
 
 class PasswordChangeIn(BaseModel):
     old_password: str = ""
     new_password: str
+    phone: str | None = None
+
+
+class PhoneUpdateIn(BaseModel):
+    phone: str
+    password: str = ""
 
 
 @app.post("/auth/password/login")
@@ -1362,13 +1374,21 @@ async def auth_password_login(
     body: PasswordLoginIn,
     db: AsyncSession = Depends(get_session),
 ) -> JSONResponse:
-    """Sign in using email and password."""
-    norm_email = body.email.strip().lower()
-    stmt = select(User).where(User.email == norm_email)
+    """Sign in using email or phone number and password."""
+    identifier = (body.account or body.phone or body.email).strip()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Vui lòng nhập email hoặc số điện thoại")
+
+    norm_email = identifier.lower()
+    candidates = get_phone_candidates(identifier)
+
+    stmt = select(User).where(
+        (User.email == norm_email) | (User.phone.in_(candidates))
+    )
     res = await db.execute(stmt)
     user = res.scalars().first()
     if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không chính xác")
+        raise HTTPException(status_code=401, detail="Email/Số điện thoại hoặc mật khẩu không chính xác")
     if user.suspended:
         raise HTTPException(status_code=403, detail="Tài khoản đã bị tạm khóa")
 
@@ -1377,7 +1397,7 @@ async def auth_password_login(
         scope=sess.BOOTSTRAP_SCOPE,
     )
     session_cookie = sess.make_session(user.id, token_version=user.token_version)
-    resp = JSONResponse({"token": token, "email": user.email})
+    resp = JSONResponse({"token": token, "email": user.email, "phone": user.phone or ""})
     resp.headers["Cache-Control"] = "no-store"
     resp.set_cookie(sess.COOKIE, session_cookie, httponly=True,
                     samesite="lax", secure=_is_https(request), max_age=sess.TTL_SECONDS)
@@ -1388,8 +1408,43 @@ async def auth_password_login(
 async def auth_password_status(
     user: User = Depends(require_person),
 ) -> dict:
-    """Return whether the authenticated user has a password set."""
-    return {"has_password": bool(user.password_hash), "email": user.email}
+    """Return whether the authenticated user has a password set and their linked phone."""
+    return {
+        "has_password": bool(user.password_hash),
+        "email": user.email,
+        "phone": user.phone or "",
+    }
+
+
+@app.post("/auth/phone/update")
+async def auth_phone_update(
+    body: PhoneUpdateIn,
+    user: User = Depends(require_person),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """Bind or update phone number for current user."""
+    raw_phone = body.phone.strip()
+    if raw_phone:
+        clean = clean_phone(raw_phone)
+        if not is_probable_phone(clean):
+            raise HTTPException(status_code=400, detail="Số điện thoại không hợp lệ")
+
+        candidates = get_phone_candidates(clean)
+        stmt = select(User).where(User.phone.in_(candidates), User.id != user.id)
+        existing = (await db.execute(stmt)).scalars().first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Số điện thoại này đã được tài khoản khác sử dụng")
+    else:
+        clean = None
+
+    if user.password_hash and body.password:
+        if not verify_password(body.password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Mật khẩu xác nhận không đúng")
+
+    user.phone = clean
+    db.add(user)
+    await db.commit()
+    return {"ok": True, "phone": user.phone or "", "message": "Cập nhật số điện thoại thành công"}
 
 
 @app.post("/auth/password/change")
@@ -1398,7 +1453,7 @@ async def auth_password_change(
     user: User = Depends(require_person),
     db: AsyncSession = Depends(get_session),
 ) -> dict:
-    """Set or change user password."""
+    """Set or change user password, and optionally update linked phone number."""
     if len(body.new_password) < 6:
         raise HTTPException(status_code=400, detail="Mật khẩu mới phải có tối thiểu 6 ký tự")
 
@@ -1407,8 +1462,106 @@ async def auth_password_change(
         if not body.old_password or not verify_password(body.old_password, user.password_hash):
             raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng")
 
+    # If phone is provided, validate and update phone as well
+    if body.phone is not None:
+        raw_phone = body.phone.strip()
+        if raw_phone:
+            clean = clean_phone(raw_phone)
+            if not is_probable_phone(clean):
+                raise HTTPException(status_code=400, detail="Số điện thoại không hợp lệ")
+            candidates = get_phone_candidates(clean)
+            stmt = select(User).where(User.phone.in_(candidates), User.id != user.id)
+            existing = (await db.execute(stmt)).scalars().first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Số điện thoại này đã được tài khoản khác sử dụng")
+            user.phone = clean
+        else:
+            user.phone = None
+
     user.password_hash = hash_password(body.new_password)
     db.add(user)
     await db.commit()
-    return {"ok": True, "message": "Đổi mật khẩu thành công"}
+    return {"ok": True, "phone": user.phone or "", "message": "Đổi mật khẩu thành công"}
+
+
+class PasswordRegisterIn(BaseModel):
+    account: str = ""
+    email: str = ""
+    phone: str = ""
+    password: str
+
+
+@app.post("/auth/password/register")
+async def auth_password_register(
+    request: Request,
+    body: PasswordRegisterIn,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    """Register a new account or bind password using email or phone number."""
+    identifier = (body.account or body.phone or body.email).strip()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Vui lòng nhập email hoặc số điện thoại")
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu phải có tối thiểu 6 ký tự")
+
+    if is_probable_phone(identifier):
+        clean = clean_phone(identifier)
+        if not is_probable_phone(clean):
+            raise HTTPException(status_code=400, detail="Số điện thoại không hợp lệ")
+        candidates = get_phone_candidates(clean)
+        stmt = select(User).where(User.phone.in_(candidates))
+        user = (await db.execute(stmt)).scalars().first()
+        if user:
+            if user.password_hash:
+                raise HTTPException(status_code=400, detail="Số điện thoại này đã được đăng ký, vui lòng đăng nhập")
+            user.password_hash = hash_password(body.password)
+        else:
+            digits = re.sub(r"\D", "", clean)
+            synthetic_email = f"phone_{digits}@phone.treg.local"
+            existing_email = (await db.execute(select(User).where(User.email == synthetic_email))).scalars().first()
+            if existing_email:
+                synthetic_email = f"phone_{digits}_{int(_utcnow_naive().timestamp())}@phone.treg.local"
+            user = User(
+                email=synthetic_email,
+                phone=clean,
+                password_hash=hash_password(body.password),
+                email_verified_at=_utcnow_naive(),
+            )
+            db.add(user)
+    else:
+        norm_email = identifier.lower().strip()
+        if "@" not in norm_email or "." not in norm_email:
+            raise HTTPException(status_code=400, detail="Email không hợp lệ")
+        stmt = select(User).where(User.email == norm_email)
+        user = (await db.execute(stmt)).scalars().first()
+        if user:
+            if user.password_hash:
+                raise HTTPException(status_code=400, detail="Email này đã được đăng ký, vui lòng đăng nhập")
+            user.password_hash = hash_password(body.password)
+        else:
+            user = User(
+                email=norm_email,
+                password_hash=hash_password(body.password),
+                email_verified_at=_utcnow_naive(),
+            )
+            db.add(user)
+
+    await db.commit()
+    await db.refresh(user)
+
+    token = sess.make_identity(
+        user.id, user.token_version, ttl=sess.BOOTSTRAP_TTL_SECONDS,
+        scope=sess.BOOTSTRAP_SCOPE,
+    )
+    session_cookie = sess.make_session(user.id, token_version=user.token_version)
+    resp = JSONResponse({
+        "token": token,
+        "email": user.email,
+        "phone": user.phone or "",
+        "ok": True,
+    })
+    resp.headers["Cache-Control"] = "no-store"
+    resp.set_cookie(sess.COOKIE, session_cookie, httponly=True,
+                    samesite="lax", secure=_is_https(request), max_age=sess.TTL_SECONDS)
+    return resp
 

@@ -110,7 +110,7 @@ export default function data(){
       catalogClis:null,  // bin → catalog default deny patterns (lazy, from /providers.json)
       newSkill:false, skillJson:'', skillBusy:false, skillErr:'', skillMode:'folder',
       skillFiles:[], detected:null, skillSel:{}, skillVals:{}, skillResults:null,
-      sessionMode:false, activeSlug: storageGet('treg-active')||null, meta:{github:false, public_url:location.origin},
+      sessionMode:false, activeSlug: storageGet('treg-active')||null, meta:{github:false, google:false, email_otp:false, public_url:location.origin},
       view:'tools', q:'', err:'', loading:false, toolTab:'all', bundles:[], confirmDelBundle:null, installCopied:null,
       copyRecipe:null, recipeTab:'CLI', viewRecipe:null, recipeSaved:false,
       // detail pages (shareable /app/skills/<name> + /app/tools/<name> deep links)

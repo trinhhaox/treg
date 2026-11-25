@@ -246,6 +246,8 @@ class User(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
+    # Phone number for direct phone login and contact. None for users without phone.
+    phone: str | None = Field(default=None, index=True, unique=True)
     # Hashed password for direct credential login (PBKDF2-HMAC-SHA256). None for passwordless-only users.
     password_hash: str | None = Field(default=None)
     # Only an inbox proof or a provider-verified email can set this. Admin-visible invitation
