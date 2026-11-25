@@ -39,8 +39,8 @@ WORKDIR /app
 # Copy dependency specifications for layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install locked dependencies
-RUN uv sync --frozen --no-install-project --no-dev
+# Install locked dependencies including [server] extra
+RUN uv sync --frozen --no-install-project --no-dev --extra server
 
 # Copy application source code
 COPY . .
@@ -48,8 +48,8 @@ COPY . .
 # Copy prebuilt frontend assets from Stage 1 into web directory
 COPY --from=frontend-builder /build/src/treg/web/dashboard ./src/treg/web/dashboard
 
-# Install project package into virtualenv
-RUN uv sync --frozen --no-dev
+# Install project package into virtualenv with server extra
+RUN uv sync --frozen --no-dev --extra server
 
 # Ensure virtualenv binaries and Python packages are on PATH
 ENV VIRTUAL_ENV=/app/.venv \
