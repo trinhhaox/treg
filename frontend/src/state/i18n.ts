@@ -3,7 +3,17 @@ import { ref, reactive } from 'vue'
 export type Locale = 'vi' | 'en'
 
 const STORAGE_KEY = 'treg_locale'
-const initialLocale: Locale = (localStorage.getItem(STORAGE_KEY) as Locale) || 'vi'
+const getStoredLocale = (): Locale => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      return (localStorage.getItem(STORAGE_KEY) as Locale) || 'vi'
+    }
+  } catch {
+    // ignore
+  }
+  return 'vi'
+}
+const initialLocale: Locale = getStoredLocale()
 
 export const currentLocale = ref<Locale>(initialLocale)
 
@@ -38,6 +48,38 @@ export const translations: Record<Locale, Record<string, string>> = {
     'password.change_title': 'Đổi mật khẩu',
     'password.set_title': 'Thiết lập mật khẩu',
     'password.change_desc': 'Cập nhật mật khẩu đăng nhập cho tài khoản của bạn.',
+
+    // Referrals Page
+    'referrals.partner_h1': 'Đối tác liên kết (Affiliate)',
+    'referrals.friend_h1': 'Giới thiệu bạn bè',
+    'referrals.partner_sub': 'Chia sẻ doanh thu, thanh toán bằng tiền mặt. Theo lời mời đặc biệt.',
+    'referrals.friend_sub_prefix': 'Bạn bè nhận',
+    'referrals.friend_sub_mid': 'khi nạp từ',
+    'referrals.friend_sub_suffix': 'Bạn nhận phần thưởng sau thời gian bảo lưu.',
+    'referrals.tab_friend': 'Giới thiệu bạn bè',
+    'referrals.tab_partner': 'Đối tác liên kết',
+    'referrals.who_lbl': 'Dành cho ai',
+    'referrals.who_desc': 'Những người hoặc tổ chức có lượng người tiếp cận lớn: cộng đồng, bản tin newsletter, nhóm nhà phát triển hoặc agency triển khai giải pháp AI cho khách hàng.',
+    'referrals.what_lbl': 'Quyền lợi bạn nhận được',
+    'referrals.what_desc': 'Tỷ lệ chia sẻ doanh thu từ các khoản nạp tiền của người bạn giới thiệu, thanh toán trực tiếp bằng tiền mặt hàng tháng. Không giới hạn số lượng người giới thiệu.',
+    'referrals.how_lbl': 'Cách thức tham gia',
+    'referrals.how_desc': 'Theo lời mời riêng. Hãy chia sẻ với chúng tôi về cộng đồng của bạn và cách bạn dự định giới thiệu mọi người đến với treg, chúng tôi sẽ liên hệ lại sớm nhất.',
+    'referrals.apply_btn': 'Đăng ký làm đối tác liên kết',
+    'referrals.friend_alt': 'Bạn chỉ muốn giới thiệu cho bạn bè? Chương trình',
+    'referrals.friend_alt_link': 'giới thiệu bạn bè',
+    'referrals.friend_alt_tail': 'tặng tín dụng cho mỗi người bạn, không cần qua đơn đăng ký.',
+    'referrals.need_team_lbl': 'Tạo một đội ngũ để mở khóa liên kết giới thiệu',
+    'referrals.need_team_desc': 'Phần thưởng giới thiệu được trả dưới dạng tín dụng vào đội ngũ mà bạn sở hữu, vì vậy bạn cần có một đội ngũ trước tiên.',
+    'referrals.go_orgs': 'Đi đến quản lý đội ngũ',
+    'referrals.link_lbl': 'Liên kết giới thiệu của bạn',
+    'referrals.stat_signed_up': 'đã đăng ký',
+    'referrals.stat_topped_up': 'đã nạp tiền',
+    'referrals.stat_earned': 'đã nhận thưởng',
+    'referrals.pending_notice': 'đang xử lý — phần thưởng sẽ mở khóa sau',
+    'referrals.days_since_topup': 'ngày kể từ khi bạn bè của bạn nạp tiền.',
+    'referrals.cap_limit_title': 'Bạn đã đạt giới hạn 20 lượt giới thiệu',
+    'referrals.cap_limit_desc': 'Đó là mức tối đa của chương trình tự phục vụ thông thường. Nếu bạn có lượng người dùng lớn, hãy chuyển sang tab Đối tác liên kết ở trên — chúng tôi chi trả hoa hồng bằng tiền mặt.',
+    'referrals.credit_to': 'Phần thưởng của bạn sẽ được cộng vào đội ngũ',
     'password.set_desc': 'Tạo mật khẩu để đăng nhập trực tiếp không cần chờ mã OTP email.',
     'password.phone_section': 'Số điện thoại liên kết',
     'password.phone_desc': 'Dùng số điện thoại để đăng nhập tài khoản trực tiếp.',
@@ -746,11 +788,20 @@ export const translations: Record<Locale, Record<string, string>> = {
   }
 }
 
-export function t(key: string, params?: Record<string, string | number>, fallback?: string): string {
+export function t(key: string, params?: Record<string, string | number> | string, fallback?: string): string {
   const loc = currentLocale.value
-  let text = translations[loc]?.[key] || translations['en']?.[key] || fallback || key
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
+  let actualFallback = fallback
+  let actualParams: Record<string, string | number> | undefined
+
+  if (typeof params === 'string') {
+    actualFallback = params
+  } else {
+    actualParams = params
+  }
+
+  let text = translations[loc]?.[key] || (loc !== 'en' ? translations['en']?.[key] : undefined) || actualFallback || key
+  if (actualParams) {
+    for (const [k, v] of Object.entries(actualParams)) {
       text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
     }
   }

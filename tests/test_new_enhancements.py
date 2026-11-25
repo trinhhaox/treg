@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-import pytest
+
 from sqlmodel import select
 
 from treg import crypto
 from treg.infra.db import session_maker
-from treg.models import CallRecord, Org, Secret
+from treg.models import CallRecord, Secret
 from test_tag_billing import _org_id
 
 
@@ -178,7 +178,7 @@ async def test_tool_cache_domain(clients):
 
 
 async def test_tool_create_and_update_with_cache_and_fallback(clients):
-    org = await _org_id(clients)
+    await _org_id(clients)
 
     # 1. Create a backup tool
     resp1 = await clients.post(

@@ -282,7 +282,7 @@ async def test_one_secret(
     if secret.kind == "oauth":
         try:
             await oauth.ensure_fresh(secret, db, client)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             _mark(secret, "invalid", f"oauth refresh failed: {exc}", now)
             await db.commit()
             latency_ms = int((time.perf_counter() - t0) * 1000)
@@ -321,7 +321,7 @@ async def test_one_secret(
             else:
                 latency_ms = max(1, int((time.perf_counter() - t0) * 1000))
                 detail = "Đã xác thực cấu hình hợp lệ"
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             status = "invalid"
             detail = f"Giải mã khóa thất bại: {exc}"
 

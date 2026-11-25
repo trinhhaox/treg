@@ -1,6 +1,5 @@
 """Tests for phone-based login, phone binding, and password changes."""
 
-import pytest
 from httpx import AsyncClient
 from sqlmodel import select
 

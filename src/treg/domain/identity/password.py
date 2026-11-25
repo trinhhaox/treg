@@ -29,6 +29,6 @@ def verify_password(password: str, password_hash: str | None) -> bool:
         expected_key = bytes.fromhex(key_hex)
         actual_key = hashlib.pbkdf2_hmac(ALGORITHM, password.encode("utf-8"), salt, iterations)
         return hmac.compare_digest(actual_key, expected_key)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 

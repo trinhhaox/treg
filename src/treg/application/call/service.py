@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit
 
 import httpx
+from sqlmodel import select
 
 from ... import analytics, archive, audit, jsontext, oauth, oauth_providers
 from ...application import hub as hub_app
@@ -1670,7 +1671,7 @@ async def _execute_call(request: _ApplicationRequest, upstream_client: httpx.Asy
                                 await response.close()
                                 response = fb_res
                                 response.raw_headers = response.raw_headers + ((b"x-treg-fallback-used", b"1"),)
-                            except Exception:
+                            except Exception:  # noqa: BLE001
                                 pass
 
                     # TTL Cache Store: store successful GET response

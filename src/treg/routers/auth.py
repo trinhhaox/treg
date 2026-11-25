@@ -20,6 +20,7 @@ from ..application import auth as auth_use_cases
 from ..application import images
 from ..application import signup
 from ..domain.identity.password import hash_password, verify_password
+from ..domain.identity.phone import clean_phone, get_phone_candidates, is_probable_phone
 from ..infra.db import get_session
 from ..application.auth import (
     CLI_APPROVE_MAX_TRIES as CLI_APPROVE_MAX_TRIES,
@@ -1345,9 +1346,6 @@ async def auth_revoke_tokens(
     resp.set_cookie(sess.COOKIE, revoked.session_cookie, httponly=True,
                     samesite="lax", secure=_is_https(request), max_age=sess.TTL_SECONDS)
     return resp
-
-
-from ..domain.identity.phone import clean_phone, get_phone_candidates, is_probable_phone
 
 
 class PasswordLoginIn(BaseModel):

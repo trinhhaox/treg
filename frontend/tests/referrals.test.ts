@@ -4,6 +4,9 @@ import { renderToString } from 'vue/server-renderer'
 import ReferralsPage from '../src/pages/ReferralsPage.vue'
 import { provideDashboard } from '../src/state/context'
 import referrals from '../src/state/referrals.js'
+import { setLocale } from '../src/state/i18n'
+
+setLocale('en')
 
 async function page(cap: { paid: number; limit: number | null; affiliate: boolean }, tab = 'friend') {
   const data = {
