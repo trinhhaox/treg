@@ -88,16 +88,31 @@ export default { setup: useDashboard }
 
           <div class="grp" style="margin:22px 0 8px">{{t('admin.all_users')}}</div>
           <table v-if="adminUsers && adminUsers.length">
-            <tr><th>{{t('admin.col_email')}}</th><th>{{t('admin.orgs')}}</th><th>{{t('admin.col_flags')}}</th><th></th></tr>
+            <tr>
+              <th>{{t('admin.col_email')}}</th>
+              <th>Số điện thoại</th>
+              <th>{{t('admin.orgs')}}</th>
+              <th>{{t('admin.col_flags')}}</th>
+              <th></th>
+            </tr>
             <tr v-for="u in adminUsers" :key="u.id">
-              <td>{{u.email}}<span v-if="u.email===me" class="chip" style="margin-left:6px">{{t('admin.you')}}</span></td>
+              <td>
+                <b>{{u.email}}</b>
+                <span v-if="u.email===me" class="chip" style="margin-left:6px">{{t('admin.you')}}</span>
+              </td>
+              <td style="font-family:var(--mono);font-size:12px">
+                <span v-if="u.phone" style="color:var(--accent)">📞 {{u.phone}}</span>
+                <span v-else class="muted">Chưa gắn</span>
+              </td>
               <td class="muted">{{u.orgs.length}}</td>
               <td>
                 <span v-if="u.is_superadmin" class="badge ok">{{t('admin.superadmin')}}</span>
                 <span v-if="u.suspended" class="badge invalid" style="margin-left:4px">{{t('admin.suspended')}}</span>
-                <span v-if="!u.is_superadmin && !u.suspended" class="muted">-</span>
+                <span v-if="u.has_password" class="badge" style="margin-left:4px;background:#f3f4f6;color:#374151">🔑 Đã có MK</span>
+                <span v-if="!u.is_superadmin && !u.suspended && !u.has_password" class="muted">-</span>
               </td>
               <td style="text-align:right;white-space:nowrap">
+                <button class="btn sm" @click="admOpenPhone(u)" :disabled="adminBusy" style="margin-right:6px">📱 SĐT</button>
                 <template v-if="u.email!==me">
                   <button class="btn sm" @click="admOpenReset(u)" :disabled="adminBusy">{{t('admin.reset_password') || 'Đặt lại MK'}}</button>
                   <button class="btn sm" @click="admGrant(u)" :disabled="adminBusy" style="margin-left:6px">{{u.is_superadmin?t('admin.revoke_admin'):t('admin.make_admin')}}</button>
@@ -142,6 +157,31 @@ export default { setup: useDashboard }
                 <button class="btn sm" @click="admCloseCredit">{{t('common.cancel') || 'Hủy'}}</button>
                 <button class="btn sm primary" :disabled="adminBusy || !adminCreditAmount || parseFloat(adminCreditAmount) <= 0" @click="admSubmitCredit">
                   {{adminBusy ? 'Đang nạp...' : 'Xác nhận nạp tiền'}}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Superadmin Cập nhật Số điện thoại cho thành viên -->
+          <div v-if="adminPhoneUser" class="scrim" role="dialog" aria-modal="true" @click.self="admClosePhone">
+            <div class="box" style="max-width:420px;padding:24px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="margin:0">Cập nhật Số điện thoại</h3>
+                <button class="btn sm ico" @click="admClosePhone">✕</button>
+              </div>
+              <p class="sub" style="margin:0 0 14px">
+                Tài khoản: <b>{{adminPhoneUser.email}}</b>
+              </p>
+              <div v-if="err" class="banner" style="margin-bottom:12px;background:#ffefef;color:#b00020;padding:8px 12px;border-radius:6px;font-size:13px">{{err}}</div>
+              <div v-if="adminPhoneSuccess" class="banner" style="margin-bottom:12px;background:#ecfdf5;color:#047857;padding:8px 12px;border-radius:6px;font-size:13px">{{adminPhoneSuccess}}</div>
+
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Số điện thoại (để trống nếu muốn hủy liên kết SĐT)</label>
+              <input type="text" v-model="adminPhoneNumber" placeholder="Ví dụ: 0977496222 hoặc +84977496222" style="width:100%;box-sizing:border-box;margin-bottom:16px;padding:8px 12px;font-family:var(--mono)" autofocus @keydown.enter="admSubmitPhone"/>
+
+              <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button class="btn sm" @click="admClosePhone">{{t('common.cancel') || 'Hủy'}}</button>
+                <button class="btn sm primary" :disabled="adminBusy" @click="admSubmitPhone">
+                  {{adminBusy ? 'Đang lưu...' : (t('common.save') || 'Lưu số điện thoại')}}
                 </button>
               </div>
             </div>

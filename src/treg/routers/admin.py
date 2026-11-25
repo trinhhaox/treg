@@ -167,7 +167,8 @@ async def admin_users(_: str = Depends(require_superadmin), db: AsyncSession = D
     )).scalars().all()}
     return [
         {
-            "id": u.id, "email": u.email, "is_superadmin": u.is_superadmin, "suspended": u.suspended,
+            "id": u.id, "email": u.email, "phone": getattr(u, "phone", None), "is_superadmin": u.is_superadmin, "suspended": u.suspended,
+            "has_password": bool(getattr(u, "password_hash", None)),
             "orgs": [{"slug": omap[m.org_id].slug if m.org_id in omap else None, "role": m.role}
                      for m in mems_by_user.get(u.id, [])],
             "created_at": u.created_at.isoformat(),
@@ -1032,3 +1033,38 @@ async def admin_credit_org(
         "block_id": block.id,
         "ref": ref,
     }
+
+
+class AdminUserPhoneIn(BaseModel):
+    phone: str = ""
+
+
+@app.post("/admin/users/{user_id}/phone")
+async def admin_set_user_phone(
+    user_id: int,
+    body: AdminUserPhoneIn,
+    _: str = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_admin_session),
+) -> dict:
+    """Superadmin endpoint to set, update, or clear any user's phone number."""
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+
+    raw_phone = body.phone.strip()
+    if raw_phone:
+        from ..domain.identity.phone import clean_phone, is_probable_phone
+        if not is_probable_phone(raw_phone):
+            raise HTTPException(status_code=400, detail="Số điện thoại không hợp lệ")
+        c_phone = clean_phone(raw_phone)
+        # Check uniqueness
+        existing = (await db.execute(select(User).where(User.phone == c_phone, User.id != user_id))).scalars().first()
+        if existing:
+            raise HTTPException(status_code=409, detail=f"Số điện thoại này đã được gắn với tài khoản {existing.email}")
+        user.phone = c_phone
+    else:
+        user.phone = None
+
+    db.add(user)
+    await db.commit()
+    return {"user_id": user_id, "phone": user.phone, "ok": True}

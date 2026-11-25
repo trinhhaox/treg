@@ -127,6 +127,7 @@ export default function data(){
       admHub:{on:false, state:'requested', rows:[], reason:{}, cap:{}, busy:null, updates:[]},  // hub listing review (superadmin)
       adminBusy:false, confirmAdmUser:null, confirmAdmOrg:null, adminResetUser:null, adminResetPassword:'',
       adminCreditOrg:null, adminCreditAmount:'10', adminCreditReason:'', adminCreditRef:'', adminCreditSuccess:'',
+      adminPhoneUser:null, adminPhoneNumber:'', adminPhoneSuccess:'',
       proxy: location.origin, copyTool:null, snippetTab:'cURL', snippetTabs:['cURL','CLI','Claude Code','Python','Node'], copied:false,
       exPath:'<PATH>', exMethod:'GET',
       tryTool:null, tryMethod:'GET', tryPath:'', tryBody:'', trying:false, tryResp:null, tryStatus:0, tryMs:0,

@@ -48,19 +48,21 @@ COPY . .
 # Copy prebuilt frontend assets from Stage 1 into web directory
 COPY --from=frontend-builder /build/src/treg/web/dashboard ./src/treg/web/dashboard
 
-# Install project package
+# Install project package into virtualenv
 RUN uv sync --frozen --no-dev
 
-# Environment defaults
-ENV PORT=18790 \
+# Ensure virtualenv binaries and Python packages are on PATH
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    PORT=18790 \
     HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1
 
 EXPOSE 18790
 
 # Healthcheck to verify registry responsiveness
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://127.0.0.1:${PORT}/meta || exit 1
 
-# Entrypoint: auto run migrations then launch production server
-CMD ["sh", "-c", "uv run python -m treg upgrade && uv run python -m treg"]
+# Entrypoint: run DB migrations directly then launch production server instantly
+CMD ["sh", "-c", "python -m treg upgrade && python -m treg"]

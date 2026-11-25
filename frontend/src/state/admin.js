@@ -108,5 +108,45 @@ async admSubmitCredit(){
   }finally{
     this.adminBusy = false;
   }
+},
+admOpenPhone(u){
+  this.adminPhoneUser = u;
+  this.adminPhoneNumber = u.phone || '';
+  this.adminPhoneSuccess = '';
+  this.err = '';
+},
+admClosePhone(){
+  this.adminPhoneUser = null;
+  this.adminPhoneNumber = '';
+  this.adminPhoneSuccess = '';
+},
+async admSubmitPhone(){
+  if(!this.adminPhoneUser) return;
+  const p = (this.adminPhoneNumber || '').trim();
+  this.adminBusy = true;
+  this.err = '';
+  this.adminPhoneSuccess = '';
+  try{
+    const res = await this.api('/admin/users/' + this.adminPhoneUser.id + '/phone', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({ phone: p })
+    });
+    this.adminPhoneSuccess = p ? 'Đã cập nhật số điện thoại thành công.' : 'Đã xóa số điện thoại thành công.';
+    if(this.adminUsers){
+      const target = this.adminUsers.find(x => x.id === this.adminPhoneUser.id);
+      if(target) target.phone = res.phone;
+    }
+    setTimeout(() => {
+      if(this.adminPhoneSuccess){
+        this.admClosePhone();
+        this.loadAdmin();
+      }
+    }, 1200);
+  }catch(e){
+    this.err = 'Lỗi cập nhật SĐT: ' + (e.detail || e.status || e.message);
+  }finally{
+    this.adminBusy = false;
+  }
 }
 }
