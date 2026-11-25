@@ -1,3 +1,14 @@
+# ==============================================================================
+# Treg (Tools Registry) Self-Hosted Deployment Stack
+# ==============================================================================
+# Usage:
+#   1. Local/Single-node (SQLite default):
+#      docker compose up -d --build
+#
+#   2. High-performance Production (PostgreSQL + Redis):
+#      docker compose --profile full up -d --build
+# ==============================================================================
+
 services:
   treg:
     build:
@@ -6,22 +17,72 @@ services:
     container_name: treg-app
     restart: unless-stopped
     ports:
-      - "172.17.0.1:3031:18790"
+      - "${PORT:-18790}:18790"
     env_file:
       - .env
     environment:
+      - HOST=0.0.0.0
       - PORT=18790
-      - TREG_DATABASE_URL=sqlite+aiosqlite:////app/data/treg.db
-      - TREG_PUBLIC_URL=https://treg.xox.vn
+      - PYTHONUNBUFFERED=1
     volumes:
-      - treg-data:/app/data
+      # Persistent storage for local SQLite database, secrets, and caches
+      - treg_data:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18790/"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:18790/meta || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # Optional production database profile
+  postgres:
+    image: postgres:16-alpine
+    container_name: treg-postgres
+    profiles: ["full"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-treg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-treg_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-treg_prod}
+    volumes:
+      - treg_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-treg} -d ${POSTGRES_DB:-treg_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # Optional high-speed key-value cache profile
+  redis:
+    image: redis:7.4-alpine
+    container_name: treg-redis
+    profiles: ["full"]
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - treg_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
-  treg-data:
-    driver: local
+  treg_data:
+  treg_pgdata:
+  treg_redisdata:

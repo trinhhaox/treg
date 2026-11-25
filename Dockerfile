@@ -1,31 +1,55 @@
 # ==============================================================================
-# Dockerfile for Treg (Tools Registry) Self-Hosted Runtime
+# Multi-stage Dockerfile for Treg (Tools Registry) Production Runtime
 # ==============================================================================
-FROM python:3.13-slim
 
-# Install system dependencies (build-essential needed for C-extensions like quickjs)
+# ------------------------------------------------------------------------------
+# Stage 1: Frontend Build (Node.js)
+# ------------------------------------------------------------------------------
+FROM node:22-alpine AS frontend-builder
+WORKDIR /build
+
+# Install dependencies first for layer caching
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN npm --prefix frontend ci
+
+# Copy web files needed by copy-runtime.mjs & frontend source
+COPY src/treg/web/ ./src/treg/web/
+COPY frontend/ ./frontend/
+
+# Run type check and Vite production build
+RUN npm --prefix frontend run check && npm --prefix frontend run build
+
+# ------------------------------------------------------------------------------
+# Stage 2: Production Python Runtime
+# ------------------------------------------------------------------------------
+FROM python:3.13-slim AS runtime
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast Python package management
-COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /uvx /bin/
+# Install uv for high-speed package management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# Copy dependency specifications first for layer caching
+# Copy dependency specifications for layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install Python dependencies
-RUN uv sync --frozen --no-install-project
+# Install locked dependencies
+RUN uv sync --frozen --no-install-project --no-dev
 
-# Copy source code (frontend dashboard is prebuilt in src/treg/web/dashboard)
+# Copy application source code
 COPY . .
 
-# Sync final project package
-RUN uv sync --frozen
+# Copy prebuilt frontend assets from Stage 1 into web directory
+COPY --from=frontend-builder /build/src/treg/web/dashboard ./src/treg/web/dashboard
+
+# Install project package
+RUN uv sync --frozen --no-dev
 
 # Environment defaults
 ENV PORT=18790 \
@@ -34,5 +58,9 @@ ENV PORT=18790 \
 
 EXPOSE 18790
 
-# Entrypoint script: run database upgrade then start server
+# Healthcheck to verify registry responsiveness
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://127.0.0.1:${PORT}/meta || exit 1
+
+# Entrypoint: auto run migrations then launch production server
 CMD ["sh", "-c", "uv run python -m treg upgrade && uv run python -m treg"]
