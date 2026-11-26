@@ -426,6 +426,7 @@ _CONTROL_ROUTE_KEYS: frozenset[RouteKey] = frozenset({
     ('/admin/kv', ('GET',), 'admin_kv'),
     ('/admin/users/{user_id}/superadmin', ('POST',), 'admin_set_superadmin'),
     ('/admin/users/{user_id}/password', ('POST',), 'admin_set_user_password'),
+    ('/admin/users/{user_id}/phone', ('POST',), 'admin_set_user_phone'),
     ('/admin/users/{user_id}/suspend', ('POST',), 'admin_suspend_user'),
     ('/admin/users/{user_id}', ('DELETE',), 'admin_delete_user'),
     ('/admin/orgs/{org_id}/suspend', ('POST',), 'admin_suspend_org'),
